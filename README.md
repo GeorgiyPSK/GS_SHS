@@ -1,0 +1,2 @@
+# GS_SHS
+SmartHomeServer
