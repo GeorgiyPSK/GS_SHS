@@ -1,0 +1,2130 @@
+{
+  "eb890278": {
+    "id": "eb890278",
+    "type": "climate",
+    "name": "Климат Кухня",
+    "room": "Кухня",
+    "room_id": "5784416d",
+    "extra_rooms": [
+      "1e955dfe"
+    ],
+    "state": {
+      "temp": 22.0,
+      "humidity": 45.0
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "5784416d": {
+        "x": 77.20052871895221,
+        "y": 55.69188409312458
+      },
+      "1e955dfe": {
+        "x": 18.344439865677913,
+        "y": 32.10412185415279
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "updated": "2026-10-15T14:43:39",
+    "knx": {
+      "fields": {}
+    }
+  },
+  "abdf7893": {
+    "id": "abdf7893",
+    "type": "climate",
+    "name": "Климат Детская",
+    "room": "Детская",
+    "room_id": "6d10780b",
+    "extra_rooms": [
+      "1e955dfe"
+    ],
+    "state": {
+      "temp": 22.38,
+      "humidity": 45.0
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "6d10780b": {
+        "x": 72.67776767193932,
+        "y": 53.87939233071379
+      },
+      "1e955dfe": {
+        "x": 50.0,
+        "y": 50.0
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "updated": "2026-10-15T18:12:25",
+    "knx": {
+      "enabled": true,
+      "address": "6/0/0",
+      "read_address": "",
+      "write_address": "",
+      "field": "temp",
+      "dpt": "",
+      "fields": {
+        "temp": {
+          "address": "6/0/0",
+          "dpt": "DPT-9.001"
+        }
+      }
+    },
+    "modbus": {
+      "enabled": false,
+      "conn": {},
+      "fields": {
+        "state": {
+          "address": 8979,
+          "formula": "x/10",
+          "kind": "holding",
+          "rw": "r",
+          "type": "int16"
+        }
+      }
+    },
+    "logging": {
+      "enabled": true,
+      "fields": [],
+      "max": 1000
+    }
+  },
+  "8e762e42": {
+    "id": "8e762e42",
+    "type": "climate",
+    "name": "Климат Спальня",
+    "room": "Спальня",
+    "room_id": "5556f3f5",
+    "extra_rooms": [
+      "1e955dfe"
+    ],
+    "state": {
+      "temp": 22.0,
+      "humidity": 45.0
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "5556f3f5": {
+        "x": 71.67776777366457,
+        "y": 52.560519613113485
+      },
+      "1e955dfe": {
+        "x": 77.67776716331308,
+        "y": 25.648590537541722
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "updated": "2026-10-05T12:45:59",
+    "knx": {
+      "fields": {}
+    }
+  },
+  "1e6c7184": {
+    "id": "1e6c7184",
+    "type": "climate",
+    "name": "Климат Туалет",
+    "room": "Коридор",
+    "room_id": "8b30d19e",
+    "extra_rooms": [
+      "1e955dfe"
+    ],
+    "state": {
+      "temp": 22.0,
+      "humidity": 45.0
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "8b30d19e": {
+        "x": 71.42776779909589,
+        "y": 42.94663728442251
+      },
+      "1e955dfe": {
+        "x": 38.17777118146045,
+        "y": 81.04121409297862
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "updated": "2026-10-15T11:33:56",
+    "knx": {
+      "fields": {}
+    },
+    "modbus": {
+      "enabled": true,
+      "conn": {},
+      "fields": {}
+    }
+  },
+  "d7afeee5": {
+    "id": "d7afeee5",
+    "type": "climate",
+    "name": "Климат Ванная",
+    "room": "Ванная",
+    "room_id": "f15006af",
+    "extra_rooms": [
+      "1e955dfe"
+    ],
+    "state": {
+      "temp": 24.0,
+      "humidity": 1.0
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "f15006af": {
+        "x": 41.844437475134534,
+        "y": 22.15704954133233
+      },
+      "1e955dfe": {
+        "x": 85.59443302465485,
+        "y": 72.29501037369911
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "updated": "2026-10-28T18:48:05",
+    "knx": {
+      "fields": {
+        "humidity": {
+          "address": "6/2/0",
+          "dpt": "DPT-9.001"
+        },
+        "temp": {
+          "address": "21/1/16",
+          "dpt": "DPT-9.001"
+        }
+      },
+      "enabled": true
+    },
+    "logging": {
+      "enabled": true,
+      "fields": [],
+      "max": 1000
+    },
+    "modbus": {
+      "enabled": false,
+      "conn": {
+        "transport": "tcp",
+        "baudrate": 9600,
+        "host": "192.168.66.31"
+      },
+      "fields": {
+        "on": {
+          "kind": "coil",
+          "address": 0,
+          "type": "bool",
+          "rw": "rw"
+        }
+      }
+    }
+  },
+  "bab02492": {
+    "id": "bab02492",
+    "type": "climate",
+    "name": "Климат Коридор",
+    "room": "Коридор",
+    "room_id": "8b30d19e",
+    "extra_rooms": [
+      "1e955dfe"
+    ],
+    "state": {
+      "temp": 22.0,
+      "humidity": 45.0
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "8b30d19e": {
+        "x": 72.92776764650802,
+        "y": 65.3327539468641
+      },
+      "1e955dfe": {
+        "x": 66.51110163257836,
+        "y": 72.19088890085055
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "updated": "2026-10-05T12:46:23",
+    "knx": {
+      "fields": {}
+    }
+  },
+  "47378728": {
+    "id": "47378728",
+    "type": "door",
+    "name": "Дверь Лоджия",
+    "room": "Кухня",
+    "room_id": "5784416d",
+    "extra_rooms": [],
+    "state": {
+      "open": false
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "5784416d": {
+        "x": 88.51109939462286,
+        "y": 62.34793806087865
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "updated": "2026-10-05T12:46:36",
+    "knx": {
+      "fields": {}
+    }
+  },
+  "1acd1477": {
+    "id": "1acd1477",
+    "type": "door",
+    "name": "Дверь Туалет",
+    "room": "Коридор",
+    "room_id": "8b30d19e",
+    "extra_rooms": [
+      "1e955dfe"
+    ],
+    "state": {
+      "open": false
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "8b30d19e": {
+        "x": 60.92776886721101,
+        "y": 54.81648518915899
+      },
+      "1e955dfe": {
+        "x": 47.1777702659332,
+        "y": 70.31670238957636
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "updated": "2026-10-05T12:46:42",
+    "knx": {
+      "fields": {}
+    }
+  },
+  "751f4d1c": {
+    "id": "751f4d1c",
+    "type": "door",
+    "name": "Дверь Ванная",
+    "room": "Ванная",
+    "room_id": "f15006af",
+    "extra_rooms": [
+      "1e955dfe"
+    ],
+    "state": {
+      "open": true
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "f15006af": {
+        "x": 56.594435974687094,
+        "y": 22.608243848117123
+      },
+      "1e955dfe": {
+        "x": 73.1777676210767,
+        "y": 66.36008642133086
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "updated": "2026-10-16T16:46:03",
+    "icon_rules": [],
+    "knx": {
+      "fields": {
+        "open": {
+          "dpt": "DPT-1",
+          "read": {
+            "address": "1/0/34",
+            "dpt": "DPT-1"
+          }
+        }
+      },
+      "enabled": true
+    }
+  },
+  "6255a99f": {
+    "id": "6255a99f",
+    "type": "door",
+    "name": "Дверь Спальня",
+    "room": "Спальня",
+    "room_id": "5556f3f5",
+    "extra_rooms": [
+      "1e955dfe"
+    ],
+    "state": {
+      "open": false
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "5556f3f5": {
+        "x": 12.927773750023016,
+        "y": 30.17440295067188
+      },
+      "1e955dfe": {
+        "x": 67.34443488114066,
+        "y": 60.73752688750833
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "updated": "2026-10-05T12:46:50",
+    "knx": {
+      "fields": {}
+    }
+  },
+  "0bf55323": {
+    "id": "0bf55323",
+    "type": "door",
+    "name": "Дверь Детская",
+    "room": "Детская",
+    "room_id": "6d10780b",
+    "extra_rooms": [
+      "1e955dfe"
+    ],
+    "state": {
+      "open": false
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "6d10780b": {
+        "x": 15.177773521141201,
+        "y": 66.37396907254167
+      },
+      "1e955dfe": {
+        "x": 53.92776957928776,
+        "y": 58.96746184908272
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "updated": "2026-10-05T12:46:57",
+    "knx": {
+      "fields": {}
+    }
+  },
+  "35411b18": {
+    "id": "35411b18",
+    "type": "leak",
+    "name": "Протечка Туалет",
+    "room": "Коридор",
+    "room_id": "8b30d19e",
+    "extra_rooms": [
+      "1e955dfe"
+    ],
+    "state": {
+      "leak": false
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "8b30d19e": {
+        "x": 81.34443345698715,
+        "y": 32.43036852671739
+      },
+      "1e955dfe": {
+        "x": 36.17777138491095,
+        "y": 76.2516263419446
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "updated": "2026-10-05T17:33:56",
+    "icon_rules": [
+      {
+        "field": "leak",
+        "op": "==",
+        "value": true,
+        "icon": "❌"
+      },
+      {
+        "field": "leak",
+        "op": "==",
+        "value": false,
+        "icon": "❓"
+      }
+    ],
+    "knx": {
+      "fields": {}
+    }
+  },
+  "c2e0da9b": {
+    "id": "c2e0da9b",
+    "type": "leak",
+    "name": "Протечка Кухня",
+    "room": "Кухня",
+    "room_id": "5784416d",
+    "extra_rooms": [
+      "1e955dfe"
+    ],
+    "state": {
+      "leak": false
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "5784416d": {
+        "x": 24.17777260561395,
+        "y": 43.953144193305484
+      },
+      "1e955dfe": {
+        "x": 14.51110692229137,
+        "y": 73.02386068363906
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "updated": "2026-10-13T14:48:09",
+    "knx": {
+      "fields": {}
+    }
+  },
+  "81f5e7da": {
+    "id": "81f5e7da",
+    "type": "leak",
+    "name": "Протечка Ванная",
+    "room": "Ванная",
+    "room_id": "f15006af",
+    "extra_rooms": [
+      "1e955dfe"
+    ],
+    "state": {
+      "leak": false
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "f15006af": {
+        "x": 24.927772529320013,
+        "y": 67.9704975947012
+      },
+      "1e955dfe": {
+        "x": 90.67776584088483,
+        "y": 77.70932696182452
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "updated": "2026-10-14T16:09:39",
+    "knx": {
+      "fields": {}
+    }
+  },
+  "8cb38843": {
+    "id": "8cb38843",
+    "type": "thermostat",
+    "name": "Термостат Кухня",
+    "room": "Кухня",
+    "room_id": "5784416d",
+    "extra_rooms": [
+      "1e955dfe"
+    ],
+    "state": {
+      "current": 22.0,
+      "target": 21.5,
+      "mode": "cool"
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "5784416d": {
+        "x": 83.1777666038242,
+        "y": 56.20477116281328
+      },
+      "1e955dfe": {
+        "x": 18.677773165102828,
+        "y": 24.91974022760176
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "updated": "2026-10-14T11:51:36",
+    "icon_rules": [
+      {
+        "field": "target",
+        "op": ">",
+        "value": 26,
+        "icon": "🥵"
+      },
+      {
+        "field": "target",
+        "op": "<",
+        "value": 20,
+        "icon": "🥶"
+      }
+    ],
+    "knx": {
+      "fields": {}
+    }
+  },
+  "c9c42d9e": {
+    "id": "c9c42d9e",
+    "type": "thermostat",
+    "name": "Термостат Детская",
+    "room": "Детская",
+    "room_id": "6d10780b",
+    "extra_rooms": [
+      "1e955dfe"
+    ],
+    "state": {
+      "current": 22.0,
+      "target": 26.0,
+      "mode": "heat"
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "6d10780b": {
+        "x": 77.7611004881693,
+        "y": 53.67114938501666
+      },
+      "1e955dfe": {
+        "x": 46.09443704280222,
+        "y": 24.1908899176618
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "updated": "2026-10-05T16:40:52",
+    "knx": {
+      "fields": {}
+    }
+  },
+  "b91273e0": {
+    "id": "b91273e0",
+    "type": "thermostat",
+    "name": "Термостат Спальня",
+    "room": "Спальня",
+    "room_id": "5556f3f5",
+    "extra_rooms": [
+      "1e955dfe"
+    ],
+    "state": {
+      "current": 22.0,
+      "target": 22.0,
+      "mode": "heat"
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "5556f3f5": {
+        "x": 76.84443391475078,
+        "y": 52.664641085962046
+      },
+      "1e955dfe": {
+        "x": 67.67776818056558,
+        "y": 40.05206200743835
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "updated": "2026-10-05T15:05:34",
+    "knx": {
+      "fields": {}
+    }
+  },
+  "73d605e4": {
+    "id": "73d605e4",
+    "type": "light_switch",
+    "name": "Свет Кухня",
+    "room": "Кухня",
+    "room_id": "5784416d",
+    "extra_rooms": [
+      "1e955dfe"
+    ],
+    "state": {
+      "on": false
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "5784416d": {
+        "x": 54.511102853281365,
+        "y": 55.19826326095056
+      },
+      "1e955dfe": {
+        "x": 23.42777268190789,
+        "y": 42.75922030150106
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "updated": "2026-10-16T14:13:53",
+    "icon_rules": [
+      {
+        "field": "on",
+        "op": "==",
+        "value": false,
+        "icon": "🌫️"
+      }
+    ],
+    "knx": {
+      "fields": {
+        "on": {
+          "address": "5/3/8",
+          "dpt": "DPT-1.001"
+        }
+      },
+      "enabled": true
+    }
+  },
+  "7c9f80bc": {
+    "id": "7c9f80bc",
+    "type": "light_switch",
+    "name": "Свет Детская",
+    "room": "Детская",
+    "room_id": "6d10780b",
+    "extra_rooms": [
+      "1e955dfe"
+    ],
+    "state": {
+      "on": true
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "6d10780b": {
+        "x": 42.92777069826551,
+        "y": 47.632103959799856
+      },
+      "1e955dfe": {
+        "x": 45.67777041852107,
+        "y": 35.95661634954971
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "updated": "2026-10-05T12:50:23",
+    "knx": {
+      "fields": {}
+    }
+  },
+  "5f5f10b5": {
+    "id": "5f5f10b5",
+    "type": "light_switch",
+    "name": "Свет Спальня",
+    "room": "Спальня",
+    "room_id": "5556f3f5",
+    "extra_rooms": [
+      "1e955dfe"
+    ],
+    "state": {
+      "on": false
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "5556f3f5": {
+        "x": 50.927769884463515,
+        "y": 59.01605092972455
+      },
+      "1e955dfe": {
+        "x": 74.67776746848882,
+        "y": 39.73969758889266
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "updated": "2026-10-05T12:50:13",
+    "knx": {
+      "fields": {}
+    }
+  },
+  "112dff71": {
+    "id": "112dff71",
+    "type": "light_switch",
+    "name": "Свет Коридор",
+    "room": "Коридор",
+    "room_id": "8b30d19e",
+    "extra_rooms": [
+      "1e955dfe"
+    ],
+    "state": {
+      "on": false
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "8b30d19e": {
+        "x": 26.344439051875913,
+        "y": 43.050758757271076
+      },
+      "1e955dfe": {
+        "x": 59.09443572037397,
+        "y": 65.97830874673119
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "updated": "2026-10-14T11:53:14",
+    "icon_rules": [
+      {
+        "field": "on",
+        "op": "==",
+        "value": true,
+        "icon": "💡"
+      },
+      {
+        "field": "on",
+        "op": "!=",
+        "value": true,
+        "icon": "💡"
+      }
+    ],
+    "knx": {
+      "fields": {}
+    }
+  },
+  "6dcb02f4": {
+    "id": "6dcb02f4",
+    "type": "light_switch",
+    "name": "Свет Туалет",
+    "room": "Коридор",
+    "room_id": "8b30d19e",
+    "extra_rooms": [
+      "1e955dfe"
+    ],
+    "state": {
+      "on": true
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "8b30d19e": {
+        "x": 64.92776846031,
+        "y": 39.30238573472271
+      },
+      "1e955dfe": {
+        "x": 41.34443752599716,
+        "y": 76.59869897728488
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "updated": "2026-10-05T13:26:41",
+    "knx": {
+      "fields": {}
+    }
+  },
+  "9c48fd8b": {
+    "id": "9c48fd8b",
+    "type": "light_switch",
+    "name": "Свет Ванная",
+    "room": "Ванная",
+    "room_id": "f15006af",
+    "extra_rooms": [
+      "1e955dfe"
+    ],
+    "state": {
+      "on": false
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "f15006af": {
+        "x": 43.42777064740289,
+        "y": 45.20260345625586
+      },
+      "1e955dfe": {
+        "x": 80.51110020842486,
+        "y": 72.9544474275851
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "updated": "2026-10-05T13:26:42",
+    "knx": {
+      "fields": {}
+    }
+  },
+  "9ae02f72": {
+    "id": "9ae02f72",
+    "type": "door",
+    "name": "Входная Дверь",
+    "room": "Коридор",
+    "room_id": "8b30d19e",
+    "extra_rooms": [
+      "1e955dfe"
+    ],
+    "state": {
+      "open": false
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "8b30d19e": {
+        "x": 20.761106286508557,
+        "y": 22.504120786500966
+      },
+      "1e955dfe": {
+        "x": 67.67776818056558,
+        "y": 86.17787447935291
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "updated": "2026-10-05T12:48:34",
+    "knx": {
+      "fields": {}
+    }
+  },
+  "35e060fc": {
+    "id": "35e060fc",
+    "type": "72ad23ab",
+    "name": "Текст",
+    "room": "Кухня",
+    "room_id": "5784416d",
+    "extra_rooms": [],
+    "state": {
+      "state": "22.0"
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "5784416d": {
+        "x": 16.761106693409555,
+        "y": 52.80346938543355
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "updated": "2026-10-13T14:48:11",
+    "knx": {
+      "fields": {}
+    }
+  },
+  "7aebb7ee": {
+    "id": "7aebb7ee",
+    "type": "bc093533",
+    "name": "Окно кухни",
+    "room": "Кухня",
+    "room_id": "5784416d",
+    "extra_rooms": [],
+    "state": {
+      "state": "Закрыто"
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "5784416d": {
+        "x": 85.92776632407976,
+        "y": 43.43254000659783
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "updated": "2026-10-13T12:22:22",
+    "knx": {
+      "fields": {}
+    }
+  },
+  "e296e389": {
+    "type": "light",
+    "name": "test_bulb",
+    "room": "Ванная",
+    "room_id": "f15006af",
+    "extra_rooms": [],
+    "state": {
+      "on": true,
+      "brightness": 55
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "5784416d": {
+        "x": 27.44999669901563,
+        "y": 52.59522961727161
+      },
+      "f15006af": {
+        "x": 50.0,
+        "y": 50.0
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "z2m_name": "test_bulb",
+    "z2m_ieee": "0x00158d0001234567",
+    "z2m_model": "LED1545G12",
+    "z2m_vendor": "IKEA",
+    "z2m_reason": "model содержит 'bulb'",
+    "updated": "2026-10-16T14:14:17",
+    "id": "e296e389",
+    "z2m_seen": "2026-10-05T17:54:26",
+    "knx": {
+      "fields": {
+        "brightness": {
+          "read": {
+            "address": "1/2/1",
+            "dpt": "DPT-1.001"
+          },
+          "write": {
+            "address": "1/2/2",
+            "dpt": "DPT-1.001"
+          }
+        }
+      },
+      "enabled": true
+    }
+  },
+  "7ac515c8": {
+    "type": "climate",
+    "name": "test_th",
+    "room": "Квартира",
+    "room_id": "1e955dfe",
+    "extra_rooms": [],
+    "state": {
+      "temp": 22.0,
+      "humidity": 62.0,
+      "battery": 27
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "5784416d": {
+        "x": 33.449996088664136,
+        "y": 51.65813636163452
+      },
+      "1e955dfe": {
+        "x": 23.283337736342137,
+        "y": 74.50724340298389
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "z2m_name": "test_th",
+    "z2m_ieee": "0x00158d0009876543",
+    "z2m_model": "WSDCGQ11LM",
+    "z2m_vendor": "Xiaomi",
+    "z2m_reason": "model содержит 'temperature'",
+    "updated": "2026-10-07T10:37:43",
+    "id": "7ac515c8",
+    "z2m_seen": "2026-10-05T17:38:03",
+    "knx": {
+      "fields": {}
+    }
+  },
+  "2921c9c7": {
+    "id": "2921c9c7",
+    "type": "thermostat",
+    "name": "MBT",
+    "room": "Кухня",
+    "room_id": "5784416d",
+    "extra_rooms": [],
+    "state": {
+      "current": 22.4,
+      "target": 23.0,
+      "mode": "cool",
+      "state": 26.3
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "5784416d": {
+        "x": 50.0,
+        "y": 50.0
+      }
+    },
+    "on_plan": false,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "icon_rules": [],
+    "updated": "2026-10-28T10:34:33",
+    "modbus": {
+      "enabled": true,
+      "conn": {
+        "host": "192.168.66.189"
+      },
+      "fields": {
+        "current": {
+          "address": 8979,
+          "formula": "x/10",
+          "kind": "holding",
+          "rw": "r",
+          "type": "int16"
+        }
+      }
+    },
+    "knx": {
+      "fields": {}
+    },
+    "logging": {
+      "enabled": true,
+      "fields": [],
+      "max": 1000
+    }
+  },
+  "27efaa4f": {
+    "id": "27efaa4f",
+    "type": "ad891395",
+    "name": "Кухня",
+    "room": "Кухня",
+    "room_id": "5784416d",
+    "extra_rooms": [],
+    "state": {
+      "state": 25.2,
+      "on": 264
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "5784416d": {
+        "x": 33.84443828893654,
+        "y": 65.29804612726143
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "icon_rules": [],
+    "updated": "2026-10-14T16:10:01",
+    "modbus": {
+      "enabled": false,
+      "conn": {
+        "host": "192.168.66.189"
+      },
+      "fields": {
+        "state": {
+          "address": 8979,
+          "formula": "x/10",
+          "kind": "holding",
+          "rw": "r",
+          "type": "int16"
+        }
+      }
+    },
+    "knx": {
+      "fields": {}
+    }
+  },
+  "afd6c0c3": {
+    "id": "afd6c0c3",
+    "type": "c5782fc2",
+    "name": "CO2",
+    "room": "Квартира",
+    "room_id": "1e955dfe",
+    "extra_rooms": [],
+    "state": {
+      "val": 0.0
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "1e955dfe": {
+        "x": 50.0,
+        "y": 50.0
+      }
+    },
+    "on_plan": false,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "icon_rules": [],
+    "logging": {
+      "enabled": false,
+      "fields": [],
+      "max": 1000
+    },
+    "knx": {
+      "enabled": false,
+      "fields": {}
+    },
+    "modbus": {
+      "enabled": false,
+      "conn": {
+        "transport": "tcp",
+        "host": "127.0.0.1",
+        "tcp_port": 502,
+        "port": "COM1",
+        "baudrate": 9600,
+        "parity": "N",
+        "stopbits": 1,
+        "bytesize": 8,
+        "unit": 1,
+        "timeout": 1.0
+      },
+      "fields": {}
+    },
+    "updated": "2026-10-15T14:30:53"
+  },
+  "7ee6eb3d": {
+    "id": "7ee6eb3d",
+    "type": "ad891395",
+    "name": "Temperature current LCD_14_лев атр низ",
+    "room": "Байтэк",
+    "room_id": "fc9d33f0",
+    "extra_rooms": [],
+    "state": {
+      "state": 22.8
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "fc9d33f0": {
+        "x": 68.4222139056179,
+        "y": 3.2763533487757304
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "icon_rules": [],
+    "logging": {
+      "enabled": true,
+      "fields": [],
+      "max": 1000
+    },
+    "knx": {
+      "enabled": true,
+      "fields": {
+        "state": {
+          "address": "6/3/0",
+          "dpt": "DPT-9.001"
+        }
+      }
+    },
+    "modbus": {
+      "enabled": false,
+      "conn": {
+        "transport": "tcp",
+        "host": "127.0.0.1",
+        "tcp_port": 502,
+        "port": "COM1",
+        "baudrate": 9600,
+        "parity": "N",
+        "stopbits": 1,
+        "bytesize": 8,
+        "unit": 1,
+        "timeout": 1.0
+      },
+      "fields": {}
+    },
+    "updated": "2026-10-28T19:58:31"
+  },
+  "9d930e5d": {
+    "id": "9d930e5d",
+    "type": "ad891395",
+    "name": "Temperature current LCD_9_бухг",
+    "room": "Байтэк",
+    "room_id": "fc9d33f0",
+    "extra_rooms": [],
+    "state": {
+      "state": 25.0
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "fc9d33f0": {
+        "x": 61.5888812674071,
+        "y": 3.4845962944728615
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "icon_rules": [],
+    "logging": {
+      "enabled": true,
+      "fields": [],
+      "max": 1000
+    },
+    "knx": {
+      "enabled": true,
+      "fields": {
+        "state": {
+          "address": "6/3/1",
+          "dpt": "DPT-9.001"
+        }
+      }
+    },
+    "modbus": {
+      "enabled": false,
+      "conn": {
+        "transport": "tcp",
+        "host": "127.0.0.1",
+        "tcp_port": 502,
+        "port": "COM1",
+        "baudrate": 9600,
+        "parity": "N",
+        "stopbits": 1,
+        "bytesize": 8,
+        "unit": 1,
+        "timeout": 1.0
+      },
+      "fields": {}
+    },
+    "updated": "2026-10-28T20:03:44"
+  },
+  "50b454db": {
+    "id": "50b454db",
+    "type": "ad891395",
+    "name": "Temperature current LCD_10_юристы",
+    "room": "Байтэк",
+    "room_id": "fc9d33f0",
+    "extra_rooms": [],
+    "state": {
+      "state": 24.0
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "fc9d33f0": {
+        "x": 54.755548629196305,
+        "y": 3.172231875927165
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "icon_rules": [],
+    "logging": {
+      "enabled": true,
+      "fields": [],
+      "max": 1000
+    },
+    "knx": {
+      "enabled": true,
+      "fields": {
+        "state": {
+          "address": "6/3/2",
+          "dpt": "DPT-9.001"
+        }
+      }
+    },
+    "modbus": {
+      "enabled": false,
+      "conn": {
+        "transport": "tcp",
+        "host": "127.0.0.1",
+        "tcp_port": 502,
+        "port": "COM1",
+        "baudrate": 9600,
+        "parity": "N",
+        "stopbits": 1,
+        "bytesize": 8,
+        "unit": 1,
+        "timeout": 1.0
+      },
+      "fields": {}
+    },
+    "updated": "2026-10-28T20:09:22"
+  },
+  "363aeba2": {
+    "id": "363aeba2",
+    "type": "ad891395",
+    "name": "Temperature current LCD_11_муж_с.у",
+    "room": "Байтэк",
+    "room_id": "fc9d33f0",
+    "extra_rooms": [],
+    "state": {
+      "state": 25.7
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "fc9d33f0": {
+        "x": 48.1722159655542,
+        "y": 3.2763533487757304
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "icon_rules": [],
+    "logging": {
+      "enabled": true,
+      "fields": [],
+      "max": 1000
+    },
+    "knx": {
+      "enabled": true,
+      "fields": {
+        "state": {
+          "address": "6/3/3",
+          "dpt": "DPT-9.001"
+        }
+      }
+    },
+    "modbus": {
+      "enabled": false,
+      "conn": {
+        "transport": "tcp",
+        "host": "127.0.0.1",
+        "tcp_port": 502,
+        "port": "COM1",
+        "baudrate": 9600,
+        "parity": "N",
+        "stopbits": 1,
+        "bytesize": 8,
+        "unit": 1,
+        "timeout": 1.0
+      },
+      "fields": {}
+    },
+    "updated": "2026-10-28T19:52:30"
+  },
+  "cd525826": {
+    "id": "cd525826",
+    "type": "ad891395",
+    "name": "Temperature current LCD_12_жен. с.у",
+    "room": "Байтэк",
+    "room_id": "fc9d33f0",
+    "extra_rooms": [],
+    "state": {
+      "state": 24.8
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "fc9d33f0": {
+        "x": 42.33888322561816,
+        "y": 2.859867457381468
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "icon_rules": [],
+    "logging": {
+      "enabled": true,
+      "fields": [],
+      "max": 1000
+    },
+    "knx": {
+      "enabled": true,
+      "fields": {
+        "state": {
+          "address": "6/3/4",
+          "dpt": "DPT-9.001"
+        }
+      }
+    },
+    "modbus": {
+      "enabled": false,
+      "conn": {
+        "transport": "tcp",
+        "host": "127.0.0.1",
+        "tcp_port": 502,
+        "port": "COM1",
+        "baudrate": 9600,
+        "parity": "N",
+        "stopbits": 1,
+        "bytesize": 8,
+        "unit": 1,
+        "timeout": 1.0
+      },
+      "fields": {}
+    },
+    "updated": "2026-10-28T20:04:10"
+  },
+  "c5d401c6": {
+    "id": "c5d401c6",
+    "type": "ad891395",
+    "name": "Temperature current LCD_8_кабинет",
+    "room": "Байтэк",
+    "room_id": "fc9d33f0",
+    "extra_rooms": [],
+    "state": {
+      "state": 23.1
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "fc9d33f0": {
+        "x": 35.67221723711983,
+        "y": 3.0681104030785997
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "icon_rules": [],
+    "logging": {
+      "enabled": true,
+      "fields": [],
+      "max": 1000
+    },
+    "knx": {
+      "enabled": true,
+      "fields": {
+        "state": {
+          "address": "6/3/5",
+          "dpt": "DPT-9.001"
+        }
+      }
+    },
+    "modbus": {
+      "enabled": false,
+      "conn": {
+        "transport": "tcp",
+        "host": "127.0.0.1",
+        "tcp_port": 502,
+        "port": "COM1",
+        "baudrate": 9600,
+        "parity": "N",
+        "stopbits": 1,
+        "bytesize": 8,
+        "unit": 1,
+        "timeout": 1.0
+      },
+      "fields": {}
+    },
+    "updated": "2026-10-28T19:47:09"
+  },
+  "8781732b": {
+    "id": "8781732b",
+    "type": "ad891395",
+    "name": "Temperature current LCD_7_переговорная",
+    "room": "Байтэк",
+    "room_id": "fc9d33f0",
+    "extra_rooms": [],
+    "state": {
+      "state": 22.8
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "fc9d33f0": {
+        "x": 29.922217822040015,
+        "y": 3.380474821624296
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "icon_rules": [],
+    "logging": {
+      "enabled": true,
+      "fields": [],
+      "max": 1000
+    },
+    "knx": {
+      "enabled": true,
+      "fields": {
+        "state": {
+          "address": "6/3/6",
+          "dpt": "DPT-9.001"
+        }
+      }
+    },
+    "modbus": {
+      "enabled": false,
+      "conn": {
+        "transport": "tcp",
+        "host": "127.0.0.1",
+        "tcp_port": 502,
+        "port": "COM1",
+        "baudrate": 9600,
+        "parity": "N",
+        "stopbits": 1,
+        "bytesize": 8,
+        "unit": 1,
+        "timeout": 1.0
+      },
+      "fields": {}
+    },
+    "updated": "2026-10-28T20:04:28"
+  },
+  "1681d4d8": {
+    "id": "1681d4d8",
+    "type": "ad891395",
+    "name": "Temperature current LCD_6.2_каб дир",
+    "room": "Байтэк",
+    "room_id": "fc9d33f0",
+    "extra_rooms": [],
+    "state": {
+      "state": 23.3
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "fc9d33f0": {
+        "x": 23.088885183829223,
+        "y": 3.380474821624296
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "icon_rules": [],
+    "logging": {
+      "enabled": true,
+      "fields": [],
+      "max": 1000
+    },
+    "knx": {
+      "enabled": true,
+      "fields": {
+        "state": {
+          "address": "6/3/7",
+          "dpt": "DPT-9.001"
+        }
+      }
+    },
+    "modbus": {
+      "enabled": false,
+      "conn": {
+        "transport": "tcp",
+        "host": "127.0.0.1",
+        "tcp_port": 502,
+        "port": "COM1",
+        "baudrate": 9600,
+        "parity": "N",
+        "stopbits": 1,
+        "bytesize": 8,
+        "unit": 1,
+        "timeout": 1.0
+      },
+      "fields": {}
+    },
+    "updated": "2026-10-28T20:01:06"
+  },
+  "18dcd524": {
+    "id": "18dcd524",
+    "type": "ad891395",
+    "name": "Temperature current LCD_6.1_приемная",
+    "room": "Байтэк",
+    "room_id": "fc9d33f0",
+    "extra_rooms": [],
+    "state": {
+      "state": 22.0
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "fc9d33f0": {
+        "x": 16.505552520187123,
+        "y": 3.380474821624296
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "icon_rules": [],
+    "logging": {
+      "enabled": true,
+      "fields": [],
+      "max": 1000
+    },
+    "knx": {
+      "enabled": true,
+      "fields": {
+        "state": {
+          "address": "6/3/8",
+          "dpt": "DPT-9.001"
+        }
+      }
+    },
+    "modbus": {
+      "enabled": false,
+      "conn": {
+        "transport": "tcp",
+        "host": "127.0.0.1",
+        "tcp_port": 502,
+        "port": "COM1",
+        "baudrate": 9600,
+        "parity": "N",
+        "stopbits": 1,
+        "bytesize": 8,
+        "unit": 1,
+        "timeout": 1.0
+      },
+      "fields": {}
+    },
+    "updated": "2026-10-28T19:31:00"
+  },
+  "87093748": {
+    "id": "87093748",
+    "type": "ad891395",
+    "name": "Temperature current LCD_5_отдел кадров",
+    "room": "Байтэк",
+    "room_id": "fc9d33f0",
+    "extra_rooms": [],
+    "state": {
+      "state": 23.9
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "fc9d33f0": {
+        "x": 10.172219831113704,
+        "y": 3.380474821624296
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "icon_rules": [],
+    "logging": {
+      "enabled": true,
+      "fields": [],
+      "max": 1000
+    },
+    "knx": {
+      "enabled": true,
+      "fields": {
+        "state": {
+          "address": "6/3/9",
+          "dpt": "DPT-9.001"
+        }
+      }
+    },
+    "modbus": {
+      "enabled": false,
+      "conn": {
+        "transport": "tcp",
+        "host": "127.0.0.1",
+        "tcp_port": 502,
+        "port": "COM1",
+        "baudrate": 9600,
+        "parity": "N",
+        "stopbits": 1,
+        "bytesize": 8,
+        "unit": 1,
+        "timeout": 1.0
+      },
+      "fields": {}
+    },
+    "updated": "2026-10-28T19:51:21"
+  },
+  "2a89df60": {
+    "id": "2a89df60",
+    "type": "ad891395",
+    "name": "Temperature current LCD_15.3_лев атр верх",
+    "room": "Байтэк",
+    "room_id": "fc9d33f0",
+    "extra_rooms": [],
+    "state": {
+      "state": 23.2
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      },
+      "fc9d33f0": {
+        "x": 3.505553842615373,
+        "y": 3.4845962944728615
+      }
+    },
+    "on_plan": true,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "icon_rules": [],
+    "logging": {
+      "enabled": true,
+      "fields": [],
+      "max": 1000
+    },
+    "knx": {
+      "enabled": true,
+      "fields": {
+        "state": {
+          "address": "6/3/10",
+          "dpt": "DPT-9.001"
+        }
+      }
+    },
+    "modbus": {
+      "enabled": false,
+      "conn": {
+        "transport": "tcp",
+        "host": "127.0.0.1",
+        "tcp_port": 502,
+        "port": "COM1",
+        "baudrate": 9600,
+        "parity": "N",
+        "stopbits": 1,
+        "bytesize": 8,
+        "unit": 1,
+        "timeout": 1.0
+      },
+      "fields": {}
+    },
+    "updated": "2026-10-28T19:56:22"
+  },
+  "5e9876d6": {
+    "id": "5e9876d6",
+    "type": "thermostat",
+    "name": "sds",
+    "room": "",
+    "room_id": "",
+    "extra_rooms": [],
+    "state": {
+      "current": 22.0,
+      "target": 23.0,
+      "mode": "heat"
+    },
+    "x": 50.0,
+    "y": 50.0,
+    "positions": {
+      "main": {
+        "x": 50.0,
+        "y": 50.0
+      }
+    },
+    "on_plan": false,
+    "mqtt": {
+      "state_topic": "",
+      "sub_topic": "",
+      "retain": true
+    },
+    "icon_rules": [],
+    "logging": {
+      "enabled": false,
+      "fields": [],
+      "max": 1000
+    },
+    "knx": {
+      "enabled": false,
+      "fields": {}
+    },
+    "modbus": {
+      "enabled": false,
+      "conn": {
+        "transport": "tcp",
+        "host": "127.0.0.1",
+        "tcp_port": 502,
+        "port": "COM1",
+        "baudrate": 9600,
+        "parity": "N",
+        "stopbits": 1,
+        "bytesize": 8,
+        "unit": 1,
+        "timeout": 1.0
+      },
+      "fields": {}
+    },
+    "updated": "2026-10-27T16:50:16"
+  }
+}
