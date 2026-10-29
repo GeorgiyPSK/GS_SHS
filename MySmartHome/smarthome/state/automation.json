@@ -1,0 +1,38 @@
+{
+  "scenario_groups": {},
+  "scenarios": {},
+  "events": {
+    "fc8347d6": {
+      "id": "fc8347d6",
+      "name": "Новое событие",
+      "source_device": "",
+      "source_field": "",
+      "when": "any",
+      "requests": [],
+      "mqtt_publishes": [],
+      "enabled": true
+    }
+  },
+  "timers": {
+    "54d46916": {
+      "id": "54d46916",
+      "name": "Новый таймер",
+      "enabled": false,
+      "kind": "interval",
+      "interval_sec": 1,
+      "time": "08:00",
+      "weekdays": [],
+      "at_iso": "",
+      "last_fired_iso": "2026-10-28T17:04:27",
+      "actions": [
+        {
+          "device": "",
+          "field": "",
+          "script_id": "",
+          "type": "set_state",
+          "value": ""
+        }
+      ]
+    }
+  }
+}
