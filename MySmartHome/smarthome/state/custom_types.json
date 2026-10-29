@@ -1,0 +1,38 @@
+{
+  "ad891395": {
+    "id": "ad891395",
+    "name": "Датчик температуры",
+    "icon": "🌡️",
+    "label": "Датчик температуры",
+    "display_field": "state",
+    "fields": [
+      {
+        "name": "state",
+        "label": "Температура",
+        "type": "number",
+        "control": "number",
+        "default": 0.0,
+        "options": []
+      }
+    ],
+    "icon_rules": []
+  },
+  "c5782fc2": {
+    "id": "c5782fc2",
+    "name": "Датчик CO2",
+    "icon": "🌫️",
+    "label": "Датчик CO2",
+    "display_field": "val",
+    "fields": [
+      {
+        "name": "val",
+        "label": "Значение",
+        "type": "number",
+        "control": "number",
+        "default": 0.0,
+        "options": []
+      }
+    ],
+    "icon_rules": []
+  }
+}
