@@ -13,7 +13,7 @@
   },
   "zigbee2mqtt": {
     "enabled": false,
-    "base_topic": "zigbee2mqtt",
+    "base_topic": "zigbee2mqtt_",
     "host": "http://localhost:8080"
   },
   "modbus_poll_ms": 5000,
