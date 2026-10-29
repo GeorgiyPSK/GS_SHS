@@ -1,0 +1,17 @@
+{
+  "users": {
+    "Admin": {
+      "username": "Admin",
+      "password_hash": "scrypt:32768:8:1$Wka4GlQ83ih6jd75$95705a8f2dde2f905ad4580e6799f57b31611ddf5bacc6003ffedf4444863cd3d836bd9d258ff16765b7f6a5a3975700e830a4ab014f857352830eb6b103a94d",
+      "is_admin": true,
+      "created": "2026-10-13T11:42:45"
+    },
+    "user": {
+      "username": "user",
+      "password_hash": "scrypt:32768:8:1$fBxYVOM9lu2Omoes$7456e2ecbeb02647d2673764d0dad61485242eb1e8f05de9f8e1ef9754b0a78b5f457a05f325fd945185a6020699fe0d11b984fd15288af6d0eb9841d081fdfc",
+      "is_admin": false,
+      "created": "2026-10-13T11:47:19"
+    }
+  },
+  "tokens": {}
+}
