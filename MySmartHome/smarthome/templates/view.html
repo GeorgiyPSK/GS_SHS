@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>GS Smart — Просмотр</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="header">
+  <div id="date"></div>
+  <div id="time"></div>
+  <div class="tools">
+    <div class="mode-switch">
+      <button class="active" disabled>👁 Просмотр</button>
+    </div>
+  </div>
+</div>
+
+<div id="view-ui">
+
+  <!-- Под-вкладки -->
+  <div class="tabs">
+    <button id="vtab-rooms" class="active" onclick="switchViewView('rooms')">🏠 Комнаты</button>
+    <button id="vtab-all"                   onclick="switchViewView('all')">🧩 Все устройства</button>
+    <button id="vtab-plan"                  onclick="switchViewView('plan')">🗺️ План</button>
+  </div>
+
+  <!-- Комнаты -->
+  <div id="view-rooms-view">
+    <div class="view-rooms-grid" id="view-rooms-grid"></div>
+  </div>
+
+  <!-- План -->
+  <div id="view-plan-view" style="display:none;">
+    <div class="plan-toolbar">
+      <div class="plan-breadcrumb" id="view-plan-breadcrumb"></div>
+    </div>
+    <div id="view-plan-main-wrap" class="plan-wrap"></div>
+    <div id="view-plan-room-wrap" class="plan-wrap" style="display:none;"></div>
+  </div>
+
+  <!-- Все устройства -->
+  <div id="view-all-view" style="display:none;">
+    <div class="view-grid" id="view-all-grid"></div>
+  </div>
+
+</div>
+
+<!-- Модалка устройства -->
+<div class="modal-overlay" id="modal-overlay"
+     onclick="if (event.target === this) closeDeviceModal()">
+  <div class="modal" id="modal-content">
+    <button class="modal-close" onclick="closeDeviceModal()" title="Закрыть">✕</button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- Модалка графика -->
+<div class="modal-overlay" id="chart-modal-overlay"
+     onclick="if (event.target === this) closeChartModal()">
+  <div class="modal" style="max-width:960px; width:100%;">
+    <button class="modal-close" onclick="closeChartModal()" title="Закрыть">✕</button>
+    <div style="padding:1.2rem;">
+      <h3 id="chart-modal-title" style="margin:0 0 .6rem;">📊 График</h3>
+
+      <div style="margin-bottom:.5rem;">
+        <div style="font-size:.85rem; opacity:.85; margin-bottom:.3rem;">Серии:</div>
+        <ul id="chart-modal-series"
+            style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:.3rem; max-height:160px; overflow-y:auto;"></ul>
+
+        <div style="display:flex; gap:.4rem; flex-wrap:wrap; align-items:center; margin-top:.5rem;">
+          <select id="chart-modal-device" onchange="chartModalRefreshFields()"
+                  style="flex:1; min-width:180px;">
+            <option value="">— устройство —</option>
+          </select>
+          <select id="chart-modal-field" style="flex:1; min-width:120px;"></select>
+          <button class="btn small gray" onclick="chartModalSeriesAdd()">➕ Добавить</button>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-wrap:wrap; gap:.5rem; align-items:center; margin:.6rem 0;">
+        <label>С: <input type="datetime-local" id="chart-from" onchange="reloadChartSeries()"></label>
+        <label>По: <input type="datetime-local" id="chart-to" onchange="reloadChartSeries()"></label>
+        <label>Точек:
+          <input type="number" id="chart-max-points" min="50" max="5000" step="50"
+                 value="1000" style="width:90px;" onchange="reloadChartSeries()">
+        </label>
+        <div style="display:flex; gap:.3rem;">
+          <button class="btn small gray" onclick="chartQuickRange(1)">1ч</button>
+          <button class="btn small gray" onclick="chartQuickRange(24)">24ч</button>
+          <button class="btn small gray" onclick="chartQuickRange(24*7)">7д</button>
+          <button class="btn small gray" onclick="chartQuickRange(24*30)">30д</button>
+        </div>
+      </div>
+
+      <div style="position:relative; height:420px;">
+        <canvas id="chart-canvas"></canvas>
+      </div>
+
+      <div id="chart-status" style="font-size:.85rem; opacity:.75; margin-top:.4rem;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  window.__VIEW_INITIAL_ROOM__ = {{ initial_room|tojson }};
+</script>
+
+<!-- 1. Переменные и константы -->
+<script src="{{ url_for('static', filename='constants.js') }}"></script>
+
+<!-- 2. Утилиты (общие с основным приложением) -->
+<script src="{{ url_for('static', filename='core.js') }}"></script>
+
+<!-- 3. UI-модули, которые нужны только для просмотра -->
+<script src="{{ url_for('static', filename='ui/modals.js') }}"></script>
+<script src="{{ url_for('static', filename='ui/devices.js') }}"></script>
+<script src="{{ url_for('static', filename='ui/charts.js') }}"></script>
+<script src="{{ url_for('static', filename='ui/plan.js') }}"></script>
+
+<!-- 4. Точка входа для просмотра -->
+<script src="{{ url_for('static', filename='view.js') }}"></script>
+</body>
+</html>
