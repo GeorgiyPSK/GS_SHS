@@ -1,0 +1,31 @@
+{
+  "mode": "edit",
+  "poll_interval": 2000,
+  "host": "0.0.0.0",
+  "port": 5000,
+  "telegram": {
+    "enabled": true,
+    "bot_token": "9223114816:AAHdee8fhK-bsaSOGCMUe3YoxAc-np_3RyQ",
+    "default_chat_id": "9223114816",
+    "parse_mode": "HTML",
+    "notify_on_errors": true,
+    "proxy_url": ""
+  },
+  "zigbee2mqtt": {
+    "enabled": false,
+    "base_topic": "zigbee2mqtt",
+    "host": "http://localhost:8080"
+  },
+  "modbus_poll_ms": 5000,
+  "knx": {
+    "enabled": true,
+    "read_prefix": "knx/",
+    "write_suffix": "/write",
+    "value_format": "json",
+    "connection": "tunnel",
+    "gateway_ip": "95.104.235.30",
+    "gateway_port": 32671,
+    "own_address": "15.15.250",
+    "individual_address": "15.15.250"
+  }
+}
