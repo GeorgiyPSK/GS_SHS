@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>GS Smart</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+</head>
+<body>
+
+<!-- ============================================================
+     Шапка
+     ============================================================ -->
+<div class="header">
+  <div id="date"></div>
+  <div id="time"></div>
+  <div class="tools">
+    <div class="mode-switch">
+      <button id="mode-user" class="active" onclick="setMode('user')">👁 Просмотр</button>
+      <button id="mode-edit" class="edit"  onclick="setMode('edit')">✏️ Настройка</button>
+      <button class="icon-btn" id="pause-btn" onclick="toggleRefreshPause()" title="Пауза автообновления">⏸</button>
+      <a href="/logout" class="icon-btn" title="Выйти" style="text-decoration:none;">Выйти🚪</a>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     Модалки
+     ============================================================ -->
+
+<!-- Модалка: новый KNX GA -->
+<div class="modal-overlay" id="knx-ga-add-overlay"
+     onclick="if (event.target === this) closeKnxGaAddModal()">
+  <div class="modal" id="knx-ga-add-content" style="max-width:520px;">
+    <button class="modal-close" onclick="closeKnxGaAddModal()" title="Закрыть">✕</button>
+    <div style="padding:1.2rem;">
+      <h3 style="margin:0 0 .8rem;">➕ Новый групповой адрес</h3>
+
+      <div class="row" style="display:flex;gap:.5rem;align-items:center;margin-bottom:.6rem;">
+        <label style="flex:0 0 140px;">Адрес</label>
+        <input type="text" id="kga-address" placeholder="1/2/3" style="flex:1;font-family:monospace;">
+      </div>
+
+      <div class="row" style="display:flex;gap:.5rem;align-items:center;margin-bottom:.6rem;">
+        <label style="flex:0 0 140px;">Имя</label>
+        <input type="text" id="kga-name" placeholder="Например, Свет кухни" style="flex:1;">
+      </div>
+
+      <div class="row" style="display:flex;gap:.5rem;align-items:center;margin-bottom:.6rem;">
+        <label style="flex:0 0 140px;">DPT</label>
+        <select id="kga-dpt" style="flex:1;">
+          <option value="DPT-1.001">DPT-1.001 — switch (bool)</option>
+          <option value="DPT-1.002">DPT-1.002 — boolean</option>
+          <option value="DPT-1.003">DPT-1.003 — enable</option>
+          <option value="DPT-1.008">DPT-1.008 — up/down</option>
+          <option value="DPT-1.009">DPT-1.009 — open/close</option>
+          <option value="DPT-1.010">DPT-1.010 — start/stop</option>
+          <option value="DPT-5.001">DPT-5.001 — 8-bit (0..255)</option>
+          <option value="DPT-5.003">DPT-5.003 — angle (0..360)</option>
+          <option value="DPT-5.004">DPT-5.004 — percent (0..255)</option>
+          <option value="DPT-6.001">DPT-6.001 — 8-bit signed</option>
+          <option value="DPT-7.001">DPT-7.001 — 16-bit unsigned</option>
+          <option value="DPT-7.002">DPT-7.002 — 16-bit unsigned</option>
+          <option value="DPT-8.001">DPT-8.001 — 16-bit signed</option>
+          <option value="DPT-9.001">DPT-9.001 — температура (°C)</option>
+          <option value="DPT-9.004">DPT-9.004 — lux</option>
+          <option value="DPT-9.005">DPT-9.005 — скорость ветра</option>
+          <option value="DPT-9.007">DPT-9.007 — влажность (%)</option>
+          <option value="DPT-12.001">DPT-12.001 — 32-bit unsigned</option>
+          <option value="DPT-13.001">DPT-13.001 — 32-bit signed</option>
+          <option value="DPT-14.056">DPT-14.056 — power (W)</option>
+          <option value="DPT-14.076">DPT-14.076 — voltage (V)</option>
+          <option value="DPT-14.057">DPT-14.057 — current (A)</option>
+          <option value="DPT-16.000">DPT-16.000 — string</option>
+          <option value="DPT-17.001">DPT-17.001 — scene number</option>
+          <option value="DPT-20.102">DPT-20.102 — HVAC mode</option>
+          <option value="DPT-232.600">DPT-232.600 — RGB</option>
+        </select>
+      </div>
+
+      <div class="row" style="display:flex;gap:1rem;align-items:center;margin-bottom:.6rem;">
+        <label style="display:flex;gap:.4rem;align-items:center;font-size:.9rem;">
+          <input type="checkbox" id="kga-readable" checked> read
+        </label>
+        <label style="display:flex;gap:.4rem;align-items:center;font-size:.9rem;">
+          <input type="checkbox" id="kga-writable" checked> write
+        </label>
+      </div>
+
+      <div id="kga-error" style="color:#ff8a80;font-size:.85rem;margin-top:.5rem;min-height:1.2em;"></div>
+
+      <div class="actions" style="margin-top:1rem;display:flex;gap:.5rem;justify-content:flex-end;">
+        <button class="btn gray" onclick="closeKnxGaAddModal()">Отмена</button>
+        <button class="btn primary" onclick="applyKnxGaAddModal()">💾 Добавить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка: привязка GA к устройству -->
+<div class="modal-overlay" id="knx-link-modal-overlay"
+     onclick="if (event.target === this) closeKnxLinkModal()">
+  <div class="modal" id="knx-link-modal-content" style="max-width:560px;">
+    <button class="modal-close" onclick="closeKnxLinkModal()" title="Закрыть">✕</button>
+    <div style="padding:1.2rem;">
+      <h3 style="margin:0 0 .8rem;">🔗 Привязка KNX-адреса</h3>
+
+      <div class="row" style="display:flex;gap:.5rem;align-items:center;margin-bottom:.6rem;">
+        <label style="flex:0 0 140px;">Групповой адрес</label>
+        <input type="text" id="kl-address" placeholder="0/0/1" style="flex:1;font-family:monospace;">
+      </div>
+
+      <div class="row" style="display:flex;gap:.5rem;align-items:center;margin-bottom:.6rem;">
+        <label style="flex:0 0 140px;">Имя из ETS</label>
+        <div id="kl-ga-name" style="flex:1;opacity:.85;font-size:.9rem;">—</div>
+      </div>
+
+      <div class="row" style="display:flex;gap:.5rem;align-items:center;margin-bottom:.6rem;">
+        <label style="flex:0 0 140px;">DPT</label>
+        <input type="text" id="kl-dpt" placeholder="DPT-1.001" style="flex:1;font-family:monospace;">
+      </div>
+
+      <div class="row" style="display:flex;gap:.5rem;align-items:center;margin-bottom:.6rem;">
+        <label style="flex:0 0 140px;">ID устройства</label>
+        <input type="text" id="kl-device-id" placeholder="напр. d7afeee5"
+               style="flex:0 0 160px;font-family:monospace;"
+               oninput="onKnxLinkDeviceIdInput(this)">
+        <button class="btn small gray" onclick="pickKnxLinkDevice()"
+                title="Выбрать из списка">🔍</button>
+      </div>
+
+      <div class="row" style="display:flex;gap:.5rem;align-items:center;margin-bottom:.6rem;">
+        <label style="flex:0 0 140px;">Устройство</label>
+        <select id="kl-device" onchange="onKnxLinkDeviceChange()" style="flex:1;">
+          <option value="">— выберите —</option>
+        </select>
+      </div>
+
+      <div class="row" style="display:flex;gap:.5rem;align-items:center;margin-bottom:.6rem;">
+        <label style="flex:0 0 140px;">Поле устройства</label>
+        <select id="kl-field" style="flex:1;">
+          <option value="">— выберите поле —</option>
+        </select>
+      </div>
+
+      <div class="row" style="display:flex;gap:1rem;align-items:center;margin-bottom:.6rem;">
+        <label style="display:flex;gap:.4rem;align-items:center;font-size:.9rem;">
+          <input type="checkbox" id="kl-readable" checked> read
+        </label>
+        <label style="display:flex;gap:.4rem;align-items:center;font-size:.9rem;">
+          <input type="checkbox" id="kl-writable" checked> write
+        </label>
+      </div>
+
+      <details style="margin-top:.6rem;font-size:.85rem;">
+        <summary style="cursor:pointer;opacity:.85;">Масштабирование (необязательно)</summary>
+        <div style="display:flex;flex-direction:column;gap:.3rem;margin-top:.4rem;">
+          <div class="row" style="display:flex;gap:.5rem;align-items:center;">
+            <label style="flex:0 0 140px;">formula</label>
+            <input type="text" id="kl-formula" placeholder="x/10 или x*1.8+32" style="flex:1;font-family:monospace;">
+          </div>
+        </div>
+      </details>
+
+      <div id="kl-error" style="color:#ff8a80;font-size:.85rem;margin-top:.5rem;min-height:1.2em;"></div>
+
+      <div class="actions" style="margin-top:1rem;display:flex;gap:.5rem;justify-content:flex-end;">
+        <button class="btn gray" onclick="closeKnxLinkModal()">Отмена</button>
+        <button class="btn primary" id="kl-apply" onclick="applyKnxLinkModal()">💾 Привязать</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка: добавление графика на план -->
+<div class="modal-overlay" id="chart-add-overlay"
+     onclick="if (event.target === this) closeAddChartModal()">
+  <div class="modal" style="max-width:780px; width:100%;">
+    <button class="modal-close" onclick="closeAddChartModal()" title="Закрыть">✕</button>
+    <div style="padding:1.2rem;">
+      <h3 style="margin:0 0 .6rem;">📈 График на план</h3>
+
+      <div style="display:flex; flex-direction:column; gap:.6rem;">
+        <label style="font-size:.85rem; opacity:.85;">Серии (устройство + поле)</label>
+        <ul id="chart-add-series" style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:.3rem;"></ul>
+
+        <div style="display:flex; gap:.4rem; flex-wrap:wrap; align-items:center;">
+          <select id="chart-add-device" onchange="chartAddRefreshFields()" style="flex:1; min-width:180px;">
+            <option value="">— выберите устройство —</option>
+          </select>
+          <select id="chart-add-field" style="flex:1; min-width:120px;"></select>
+          <button class="btn small gray" onclick="chartAddSeriesAdd()">➕ Добавить серию</button>
+        </div>
+
+        <label style="font-size:.85rem; opacity:.85;">Заголовок (необязательно)</label>
+        <input type="text" id="chart-add-title" placeholder="Оставьте пустым — соберётся из имён">
+
+        <label style="font-size:.85rem; opacity:.85;">Период</label>
+        <select id="chart-add-period">
+          <option value="1h">1 час</option>
+          <option value="24h" selected>24 часа</option>
+          <option value="7d">7 дней</option>
+          <option value="30d">30 дней</option>
+          <option value="custom">свой…</option>
+        </select>
+
+        <div id="chart-add-custom" style="display:none; gap:.5rem; flex-wrap:wrap;">
+          <label>С: <input type="datetime-local" id="chart-add-from"></label>
+          <label>По: <input type="datetime-local" id="chart-add-to"></label>
+        </div>
+
+        <label style="font-size:.85rem; opacity:.85;">Тип графика</label>
+        <select id="chart-add-type">
+          <option value="line">линия</option>
+          <option value="bar">столбики</option>
+        </select>
+      </div>
+
+      <div style="margin-top:1rem; display:flex; gap:.5rem; justify-content:flex-end;">
+        <button class="btn gray" onclick="closeAddChartModal()">Отмена</button>
+        <button class="btn primary" onclick="chartAddApply()">Добавить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка: просмотр графика -->
+<div class="modal-overlay" id="chart-modal-overlay"
+     onclick="if (event.target === this) closeChartModal()">
+  <div class="modal" style="max-width:960px; width:100%;">
+    <button class="modal-close" onclick="closeChartModal()" title="Закрыть">✕</button>
+    <div style="padding:1.2rem;">
+      <h3 id="chart-modal-title" style="margin:0 0 .6rem;">📊 График</h3>
+
+      <div style="margin-bottom:.5rem;">
+        <div style="font-size:.85rem; opacity:.85; margin-bottom:.3rem;">Серии:</div>
+        <ul id="chart-modal-series"
+            style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:.3rem; max-height:160px; overflow-y:auto;"></ul>
+
+        <div style="display:flex; gap:.4rem; flex-wrap:wrap; align-items:center; margin-top:.5rem;">
+          <select id="chart-modal-device" onchange="chartModalRefreshFields()"
+                  style="flex:1; min-width:180px;">
+            <option value="">— устройство —</option>
+          </select>
+          <select id="chart-modal-field" style="flex:1; min-width:120px;"></select>
+          <button class="btn small gray" onclick="chartModalSeriesAdd()">➕ Добавить</button>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-wrap:wrap; gap:.5rem; align-items:center; margin:.6rem 0;">
+        <label>С: <input type="datetime-local" id="chart-from" onchange="reloadChartSeries()"></label>
+        <label>По: <input type="datetime-local" id="chart-to" onchange="reloadChartSeries()"></label>
+        <label>Точек:
+          <input type="number" id="chart-max-points" min="50" max="5000" step="50"
+                 value="1000" style="width:90px;" onchange="reloadChartSeries()">
+        </label>
+        <div style="display:flex; gap:.3rem;">
+          <button class="btn small gray" onclick="chartQuickRange(1)">1ч</button>
+          <button class="btn small gray" onclick="chartQuickRange(24)">24ч</button>
+          <button class="btn small gray" onclick="chartQuickRange(24*7)">7д</button>
+          <button class="btn small gray" onclick="chartQuickRange(24*30)">30д</button>
+        </div>
+      </div>
+
+      <div style="position:relative; height:420px;">
+        <canvas id="chart-canvas"></canvas>
+      </div>
+
+      <div id="chart-status" style="font-size:.85rem; opacity:.75; margin-top:.4rem;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка: карточка устройства -->
+<div class="modal-overlay" id="modal-overlay"
+     onclick="if (event.target === this) closeDeviceModal()">
+  <div class="modal" id="modal-content">
+    <button class="modal-close" onclick="closeDeviceModal()" title="Закрыть">✕</button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- Модалка: плейсхолдеры -->
+<div class="modal-overlay" id="ph-modal-overlay"
+     onclick="if (event.target === this) closePhModal()">
+  <div class="modal" id="ph-modal-content">
+    <button class="modal-close" onclick="closePhModal()" title="Закрыть">✕</button>
+    <div id="ph-modal-body" style="padding:1.2rem;"></div>
+  </div>
+</div>
+
+<!-- Модалка: кастомное поле -->
+<div class="modal-overlay" id="cf-modal-overlay"
+     onclick="if (event.target === this) closeCustomFieldModal()">
+  <div class="modal" id="cf-modal-content">
+    <button class="modal-close" onclick="closeCustomFieldModal()" title="Закрыть">✕</button>
+    <div style="padding:1.2rem;">
+      <h3 id="cf-modal-title" style="margin:0 0 .8rem;">Поле</h3>
+      <div id="cf-modal-body"></div>
+      <div class="actions" style="margin-top:1rem;display:flex;gap:.4rem;justify-content:flex-end;">
+        <button onclick="closeCustomFieldModal()">Отмена</button>
+        <button class="primary" id="cf-modal-apply">💾 Применить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка: тип устройства -->
+<div class="modal-overlay" id="ctype-modal-overlay"
+     onclick="if (event.target === this) closeCustomTypeModal()">
+  <div class="modal" id="ctype-modal-content">
+    <button class="modal-close" onclick="closeCustomTypeModal()" title="Закрыть">✕</button>
+    <div id="ctype-modal-body" style="padding:1.2rem;">
+      <h3 style="margin:0 0 .8rem;">Тип устройства</h3>
+
+      <div class="row" style="display:flex;gap:.5rem;align-items:center;margin-bottom:.5rem;">
+        <label style="flex:0 0 130px;">Название</label>
+        <input type="text" id="ct-name" placeholder="Например, Датчик CO₂" style="flex:1;">
+      </div>
+
+      <div class="row" style="display:flex;gap:.5rem;align-items:center;margin-bottom:.5rem;">
+        <label style="flex:0 0 130px;">Иконка</label>
+        <select id="ct-icon" style="flex:1;"></select>
+      </div>
+
+      <div class="row" style="display:flex;gap:.5rem;align-items:center;margin-bottom:.5rem;">
+        <label style="flex:0 0 130px;">Показывать на плане</label>
+        <select id="ct-display-field" style="flex:1;">
+          <option value="">— не показывать —</option>
+        </select>
+      </div>
+
+      <div style="margin-top:1rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem;">
+          <b>Поля состояния</b>
+          <button class="btn small gray" onclick="addCTypeField()">➕ Поле</button>
+        </div>
+        <div id="ct-fields"></div>
+      </div>
+
+      <div class="actions" style="margin-top:1rem;display:flex;gap:.5rem;justify-content:flex-end;flex-wrap:wrap;">
+        <button id="ct-delete-btn" class="btn danger" style="display:none;"
+                onclick="deleteCustomType()">🗑 Удалить</button>
+        <button class="btn gray" onclick="closeCustomTypeModal()">Отмена</button>
+        <button class="btn primary" onclick="saveCustomType()">💾 Сохранить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка: логи сервера -->
+<div class="modal-overlay" id="logs-modal-overlay"
+     onclick="if (event.target === this) closeLogsModal()">
+  <div class="modal" style="max-width:1000px; width:100%;">
+    <button class="modal-close" onclick="closeLogsModal()" title="Закрыть">✕</button>
+    <div style="padding:1.2rem; display:flex; flex-direction:column; height:80vh;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.8rem; flex-wrap:wrap; gap:.5rem;">
+        <h3 style="margin:0;">📋 Логи сервера</h3>
+        <div style="display:flex; gap:.5rem; align-items:center; flex-wrap:wrap;">
+          <input type="text" id="logs-search" placeholder="🔍 Поиск..." oninput="renderServerLogs()" style="width:180px;">
+          <select id="logs-level-filter" onchange="renderServerLogs()">
+            <option value="">Все уровни</option>
+            <option value="INFO">INFO</option>
+            <option value="WARNING">WARNING</option>
+            <option value="ERROR">ERROR</option>
+            <option value="DEBUG">DEBUG</option>
+          </select>
+          <button class="btn small gray" onclick="clearServerLogs()">Очистить</button>
+          <button class="btn small gray" onclick="toggleLogScroll()" id="logs-scroll-btn">⏬ Автоскролл: Вкл</button>
+        </div>
+      </div>
+      <div id="logs-container" style="flex:1; overflow-y:auto; background:rgba(0,0,0,.4); border-radius:8px; padding:.5rem; font-family:monospace; font-size:.85rem;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     Интерфейс просмотра (user)
+     ============================================================ -->
+<div id="view-ui">
+  <div class="tabs">
+    <button id="vtab-rooms" class="active" onclick="switchViewView('rooms')">🏠 Комнаты</button>
+    <button id="vtab-all"                   onclick="switchViewView('all')">🧩 Все устройства</button>
+    <button id="vtab-plan"                  onclick="switchViewView('plan')">🗺️ План</button>
+  </div>
+
+  <div id="view-rooms-view">
+    <div class="view-rooms-grid" id="view-rooms-grid"></div>
+  </div>
+
+  <div id="view-plan-view" style="display:none;">
+    <div class="plan-toolbar">
+      <div class="plan-breadcrumb" id="view-plan-breadcrumb"></div>
+    </div>
+    <div id="view-plan-main-wrap" class="plan-wrap"></div>
+    <div id="view-plan-room-wrap" class="plan-wrap" style="display:none;"></div>
+  </div>
+
+  <div id="view-all-view" style="display:none;">
+    <div class="view-grid" id="view-all-grid"></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     Интерфейс настройки (edit)
+     ============================================================ -->
+<div id="edit-ui" style="display:none;">
+
+  <div class="tabs">
+    <button id="tab-grid"        class="active" onclick="switchView('grid')">🧩 Устройства</button>
+    <button id="tab-plan"                      onclick="switchView('plan')">🗺️ План</button>
+    <button id="tab-unassigned"                onclick="switchView('unassigned')">📦 Без комнаты</button>
+    <button id="tab-events"                    onclick="switchView('events')">⚡ События</button>
+    <button id="tab-scenarios"                 onclick="switchView('scenarios')">🧠 Сценарии</button>
+    <button id="tab-timers"                    onclick="switchView('timers')">⏰ Таймеры</button>
+    <button id="tab-system"                    onclick="switchView('system')">⚙️ Система</button>
+    <button id="tab-mqtt-triggers"             onclick="switchView('mqtt-triggers')">📡 MQTT-триггеры</button>
+    <button id="tab-lua"                       onclick="switchView('lua')">🐍 Lua</button>
+    <button id="tab-knx-ga"                    onclick="switchView('knx-ga')">🔗 KNX-адреса</button>
+  </div>
+
+  <!-- ============ KNX-адреса ============ -->
+  <div id="knx-ga-view" style="display:none;">
+    <div class="toolbar" id="knx-ga-toolbar">
+      <button class="btn" onclick="openKnxGaAddModal()">➕ Добавить GA</button>
+      <button class="btn gray" onclick="knxGaReload()">🔄 Обновить</button>
+      <label class="btn gray" style="cursor:pointer;">
+        📥 Импорт .knxproj
+        <input type="file" accept=".knxproj,.knxprojarchive"
+               style="display:none" onchange="knxGaImportFile(this)">
+      </label>
+      <label class="btn gray" style="cursor:pointer;">
+        🔗 Обновить привязки
+        <input type="file" accept=".knxproj,.knxprojarchive"
+               style="display:none" onchange="knxGaImportLinksOnly(this)">
+      </label>
+      <span id="knx-ga-import-status" style="font-size:.85rem;opacity:.8;margin-left:.5rem;"></span>
+    </div>
+
+    <div class="toolbar" id="knx-ga-filter">
+      <input id="knx-ga-search" type="text"
+             placeholder="🔍 поиск по адресу или имени"
+             oninput="renderKnxGaTable()" style="min-width:280px;">
+      <label style="display:flex;gap:.3rem;align-items:center;font-size:.9rem;">
+        <input type="checkbox" id="knx-ga-only-linked"
+               onchange="renderKnxGaTable()"> только привязанные
+      </label>
+      <label style="display:flex;gap:.3rem;align-items:center;font-size:.9rem;">
+        <input type="checkbox" id="knx-ga-only-with-value"
+               onchange="renderKnxGaTable()"> только со значением
+      </label>
+      <select id="knx-ga-sort" onchange="renderKnxGaTable()">
+        <option value="addr">сортировка: адрес</option>
+        <option value="name">сортировка: имя</option>
+        <option value="dpt">сортировка: DPT</option>
+        <option value="value">сортировка: значение</option>
+        <option value="updated">сортировка: обновлено</option>
+      </select>
+      <span id="knx-ga-counter" style="font-size:.85rem;opacity:.7;margin-left:.5rem;"></span>
+    </div>
+
+    <div id="knx-ga-table-wrap" style="max-width:1600px;margin:0 auto;"></div>
+  </div>
+
+  <!-- ============ Lua ============ -->
+  <div id="lua-view" style="display:none;">
+    <div class="lua-layout">
+
+      <!-- Левая колонка: шпаргалка -->
+      <aside class="lua-help">
+        <h3>🐍 Lua: шпаргалка</h3>
+
+        <details open>
+          <summary>devices</summary>
+          <pre>local t = devices.get('dev_id', 'temp')
+local s = devices.get('dev_id')
+devices.set('dev_id', 'temp', 22.5)
+
+for id, name in pairs(devices.list()) do
+  log(id .. ' = ' .. name)
+end</pre>
+        </details>
+
+        <details>
+          <summary>knx</summary>
+          <pre>knx.read('dev_id', 'humidity')
+knx.write('dev_id', 'humidity', 24.0)</pre>
+        </details>
+
+        <details>
+          <summary>modbus</summary>
+          <pre>local v = modbus.read('dev_id', 'temp')
+modbus.write('dev_id', 'temp', 22)</pre>
+        </details>
+
+        <details>
+          <summary>mqtt</summary>
+          <pre>mqtt.publish('smarthome/alert',
+             '{"msg":"hello"}', true, 1)</pre>
+        </details>
+
+        <details>
+          <summary>log / notify</summary>
+          <pre>log('сообщение в лог')
+notify('Заголовок', 'Текст', 'info')</pre>
+        </details>
+
+        <details>
+          <summary>ctx</summary>
+          <pre>-- ctx.trigger = 'manual' |
+--   'timer' | 'scenario' | 'event'
+if ctx.trigger == 'timer' then
+  log('запущен по таймеру')
+end</pre>
+        </details>
+
+        <details>
+          <summary>Пример: термостат</summary>
+          <pre>local t = devices.get('climate', 'temp')
+if t and t &gt; 25 then
+  devices.set('climate', 'target', 22)
+  knx.write('climate', 'target', 22)
+  notify('GS Smart',
+         'Жарко: ' .. t .. '°C', 'warning')
+end</pre>
+        </details>
+
+        <details>
+          <summary>🌐 HTTP-запросы</summary>
+          <pre>-- Простой GET
+local body, status = http.get("http://example.com/api")
+if status == 200 then
+    log("Ответ: " .. body)
+else
+    log("Ошибка: " .. tostring(status))
+end
+
+-- Проверка доступности хоста (TCP)
+local ok, err = http.check("141.95.99.79", 80)
+if not ok then
+    log("Хост недоступен: " .. tostring(err))
+end</pre>
+        </details>
+        <details>
+          <summary>✈️ Telegram</summary>
+          <pre>-- Отправка простого сообщения
+-- (chat_id и token из настроек, если не указаны)
+telegram.send(nil, "Привет из GS Smart!")
+
+-- С указанием chat_id явно
+telegram.send("123456789", "Температура: 22°C")
+
+-- Markdown / HTML разметка
+telegram.send_markdown(nil, "*Жирный* _курсив_ `код`")
+telegram.send_html(nil, "&lt;b&gt;Жирный&lt;/b&gt; &lt;i&gt;курсив&lt;/i&gt;")
+
+-- Фото по URL (локальные файлы не поддерживаются)
+telegram.photo(nil, "https://example.com/photo.jpg", "Подпись")
+
+-- Проверка токена и получение info о боте
+local me = telegram.me()
+if me.ok then
+    log("Бот: " .. me.result.username)
+else
+    log("Ошибка: " .. tostring(me.error))
+end
+
+-- Пример: уведомление при протечке
+local leak = devices.get("leak1", "alarm")
+if leak then
+    local r = telegram.send(nil,
+        "🚨 ПРОТЕЧКА! " .. devices.get("leak1").."")
+    if not r.ok then
+        log("Telegram error: " .. tostring(r.error))
+    end
+end</pre>
+        </details>
+        <details>
+          <summary>🧩 JSON</summary>
+          <pre>-- Разбор JSON-строки
+local data = json.decode('{"temp": 22.5, "hum": 60}')
+log("Температура: " .. data.temp)
+log("Влажность: " .. data.hum)
+
+-- Сериализация Lua-таблицы в JSON
+local payload = json.encode({ on = true, level = 5 })
+log(payload)   -- {"on":true,"level":5}</pre>
+        </details>
+
+        <details>
+          <summary>🌤 Погода (OpenWeather)</summary>
+          <pre>local url = "http://api.openweathermap.org/data/2.5/weather" ..
+            "?id=584243&units=metric&appid=ВАШ_КЛЮЧ"
+
+local body, status = http.get(url)
+if status ~= 200 then
+    log("Статус: " .. tostring(status))
+    return
+end
+
+local data = json.decode(body)
+if data and data.main then
+    log("Влажность: " .. data.main.humidity .. "%")
+    devices.set("Улица влажность", "humidity", data.main.humidity)
+end</pre>
+        </details>
+
+        <details>
+          <summary>⚡ Контекст запуска (ctx)</summary>
+          <pre>-- ctx заполняется при запуске по триггеру:
+--   ctx.trigger   — "knx" | "mqtt" | "device_changed" | "timer"
+--   ctx.script_id — id текущего скрипта
+--   ctx.event     — полное событие
+--   ctx.device_id, ctx.field, ctx.value — для device_changed
+--   ctx.knx, ctx.mqtt, ctx.timer_id
+
+log("Триггер: " .. tostring(ctx.trigger))
+
+if ctx.trigger == "knx" and ctx.knx then
+    log("KNX dest: " .. ctx.knx.dest)
+end
+
+if ctx.trigger == "device_changed" then
+    log("Изменилось: " .. ctx.device_id .. "." .. ctx.field ..
+        " = " .. tostring(ctx.value))
+end</pre>
+        </details>
+
+        <details>
+          <summary>🔔 Уведомления</summary>
+          <pre>-- Показать уведомление в браузере (SSE → Notification API)
+notify("Температура", "На улице " .. temp .. " °C", "info")
+
+-- level: "info" | "warning" | "error"
+notify("Протечка!", "Датчик в ванной", "error")</pre>
+        </details>
+
+        <details>
+          <summary>🔁 Циклы, таблицы</summary>
+          <pre>-- Перебор всех устройств
+for id, name in pairs(devices.list()) do
+    log(id .. " → " .. name)
+end
+
+-- Список всех полей устройства
+local st = devices.get("sensor1")
+for k, v in pairs(st) do
+    log(k .. " = " .. tostring(v))
+end
+
+-- Условная логика
+local t = devices.get("sensor1", "temp")
+if t and t > 25 then
+    devices.set("fan1", "on", true)
+end</pre>
+        </details>
+
+        <details>
+          <summary>🔌 KNX, MQTT, Modbus</summary>
+          <pre>-- KNX: прочитать / записать
+local v = knx.read("sensor1", "temp")
+knx.write("lamp1", "on", true)
+
+-- MQTT: публикация
+mqtt.publish("home/alerts", '{"msg":"hello"}', false, 0)
+
+-- Modbus: чтение/запись
+local x = modbus.read("meter1", "power")
+modbus.write("meter1", "setpoint", 42)</pre>
+        </details>
+
+        <details>
+          <summary>⚠️ Обработка ошибок</summary>
+          <pre>-- pcall защищает от падения скрипта
+local ok, res = pcall(function()
+    return devices.get("nonexistent", "field")
+end)
+if not ok then
+    log("Ошибка: " .. tostring(res))
+end
+
+-- Всегда проверяйте, что вернул devices.get
+local t = devices.get("sensor1", "temp")
+if t == nil then
+    log("Устройство или поле не найдено")
+    return
+end</pre>
+        </details>
+
+        <details>
+          <summary>💡 Сниппеты</summary>
+          <pre>-- Форматирование числа
+log(string.format("Температура: %.1f °C", temp))
+
+-- Округление
+local r = math.floor(temp + 0.5)
+
+-- Преобразование в число
+local n = tonumber(devices.get("sensor1", "raw"))
+
+-- Случайное число
+math.randomseed(os.time())
+local rnd = math.random(1, 100)</pre>
+        </details>
+      </aside>
+
+      <!-- Центральная колонка -->
+      <section class="lua-main">
+        <div id="lua-editor"></div>
+
+        <div class="lua-log-panel">
+          <div class="lua-log-head">
+            <span>📋 Логи: <b id="lua-log-title">—</b></span>
+            <button class="btn small gray" onclick="clearLuaLogs()">Очистить</button>
+          </div>
+          <pre id="lua-log-output" class="lua-log-output">— выберите скрипт и нажмите «Запустить» —</pre>
+        </div>
+      </section>
+
+      <!-- Правая колонка -->
+      <aside class="lua-sidebar">
+        <h3>📜 Все скрипты</h3>
+        <input type="text" id="lua-search" placeholder="🔍 поиск…"
+          oninput="renderLuaSidebar()"
+          style="width:100%; margin-bottom:.5rem;">
+        <button class="btn small gray" style="width:100%;margin-bottom:.5rem;"
+          onclick="addLuaScript()">➕ Новый скрипт</button>
+        <div id="lua-sidebar-list"></div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- ============ MQTT-триггеры ============ -->
+  <div id="mqtt-triggers-view" style="display:none;">
+    <div class="hint">📡 MQTT-триггеры: при получении сообщения в указанный топик выполнить действия сценария.</div>
+    <div class="toolbar" id="mqtt-triggers-toolbar">
+      <button onclick="addMqttTrigger()">➕ Новый триггер</button>
+    </div>
+    <div class="list" id="mqtt-triggers-list"></div>
+  </div>
+
+  <!-- ============ Устройства ============ -->
+  <div id="grid-view">
+    <div class="toolbar" id="grid-toolbar">
+      <select id="type">
+        <option value="thermostat">🌡️ Термостат</option>
+        <option value="climate">💧 Датчик температуры/влажности</option>
+        <option value="door">🚪 Датчик открытия</option>
+        <option value="leak">🌊 Датчик протечки</option>
+        <option value="motion">👤 Датчик присутствия</option>
+        <option value="light">💡 Свет (диммер)</option>
+        <option value="light_switch">🔘 Свет (реле)</option>
+        <option value="curtain">🪟 Шторы</option>
+        <option value="fan">🌀 Вентилятор</option>
+        <option value="button">🔘 Кнопка (без фиксации)</option>
+        <option value="text">📝 Текстовое поле</option>
+      </select>
+      <input id="name" type="text" placeholder="Название устройства">
+      <input id="room" type="text" placeholder="Комната" style="width:150px">
+      <button onclick="addDevice()">➕ Добавить</button>
+      <button class="gray" onclick="openCustomTypeModal()">➕ Новый тип</button>
+      <button class="gray" id="edit-type-btn" disabled
+              onclick="openCustomTypeModalFromSelect()">✏️ Изменить тип</button>
+      <div class="mode-switch" style="margin-left:auto;">
+        <button id="devview-grid" class="active" onclick="setDevicesLayout('grid')">🔲 Плитка</button>
+        <button id="devview-list"               onclick="setDevicesLayout('list')">☰ Список</button>
+      </div>
+    </div>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <!-- ============ План ============ -->
+  <div id="plan-view">
+    <div class="plan-toolbar">
+      <div class="plan-breadcrumb" id="plan-breadcrumb"></div>
+      <div class="plan-actions" id="plan-actions"></div>
+    </div>
+    <div id="plan-main-wrap" class="plan-wrap"></div>
+    <div id="plan-room-wrap" class="plan-wrap" style="display:none;"></div>
+    <div class="plan-panel">
+      <h3>Комнаты</h3>
+      <div class="chips" id="rooms-chips"></div>
+    </div>
+    <div class="plan-panel">
+      <h3 id="plan-devices-title">Устройства на плане</h3>
+      <div class="chips" id="plan-chips"></div>
+    </div>
+  </div>
+
+  <!-- ============ Без комнаты ============ -->
+  <div id="unassigned-view">
+    <div class="hint">
+      📦 Устройства без привязки к комнате. Их можно массово перенести или удалить.
+    </div>
+    <div class="toolbar" id="unassigned-toolbar">
+      <select id="bulk-room-select"></select>
+      <button onclick="applyBulkRoom()">📥 Назначить комнату выделенным</button>
+      <button class="gray" onclick="selectAllUnassigned()">✅ Выделить все</button>
+      <button class="gray" onclick="clearBulkSelection()">Снять выделение</button>
+      <button class="danger" onclick="deleteBulkDevices()">🗑 Удалить выделенные</button>
+      <span id="bulk-counter" style="opacity:.8; font-size:.9rem;"></span>
+    </div>
+    <div class="list" id="unassigned-list"></div>
+  </div>
+
+  <!-- ============ События ============ -->
+  <div id="events-view">
+    <div class="hint">
+      ⚡ <b>Событие</b> — привязка GET/POST-запросов к изменению состояния устройства.
+    </div>
+    <div class="toolbar" id="events-toolbar">
+      <button onclick="addEvent()">➕ Новое событие</button>
+    </div>
+    <div class="list" id="events-list"></div>
+  </div>
+
+  <!-- ============ Сценарии ============ -->
+  <div id="scenarios-view">
+    <div class="hint">🧠 <b>Сценарий</b> = условия (AND/OR/NOT) → действия (THEN).</div>
+    <div class="group-tabs" id="group-tabs"></div>
+    <div class="toolbar" id="scenarios-toolbar">
+      <button onclick="addGroup()">📁 Новая группа</button>
+      <button onclick="addScenario()">➕ Новый сценарий</button>
+    </div>
+    <div class="list" id="scenarios-list"></div>
+  </div>
+
+  <!-- ============ Таймеры ============ -->
+  <div id="timers-view">
+    <div class="hint">⏰ <b>Таймеры и расписание</b>: интервальные, ежедневные, еженедельные, разовые.</div>
+    <div class="toolbar" id="timers-toolbar">
+      <button onclick="addTimer()">➕ Новый таймер</button>
+    </div>
+    <div class="list" id="timers-list"></div>
+  </div>
+
+  <!-- ============ Система ============ -->
+  <div id="system-view">
+
+    <div class="hint" style="margin-top:1rem;">
+      📈 <b>Журналы устройств</b>. Кто и когда логировал значения.
+    </div>
+    <div class="mqtt-form" id="logs-form">
+      <div class="mqtt-field" style="flex-direction:column; gap:.4rem;">
+        <div style="display:flex; gap:.5rem;">
+          <button class="btn gray" onclick="refreshLogsList()">🔄 Обновить список</button>
+          <button class="btn primary" onclick="openLogsModal()">📋 Логи сервера</button>
+        </div>
+        <div id="logs-list" style="font-family:monospace; font-size:.85rem; opacity:.9;"></div>
+      </div>
+    </div>
+
+    <div class="hint" style="margin-top:1rem;">
+      🔔 <b>Уведомления</b>. Разрешить браузеру показывать push-уведомления от сценариев.
+    </div>
+    <div class="mqtt-form" id="notify-form">
+      <div class="mqtt-field">
+        <label>Статус</label>
+        <div id="notify-perm" style="font-family:monospace;">—</div>
+      </div>
+      <div class="mqtt-field mqtt-actions" style="flex-direction:row;gap:.5rem;">
+        <button onclick="askNotifyPermission()">🔔 Разрешить уведомления</button>
+        <button class="btn gray" onclick="testNotify()">🧪 Тест</button>
+      </div>
+    </div>
+
+    <div class="hint">⚙️ Экспорт и импорт всей конфигурации.</div>
+    <div class="mqtt-form">
+      <button class="btn gray" onclick="exportJson()">📤 Экспорт JSON</button>
+      <label class="btn gray" style="cursor:pointer;">
+        📥 Импорт JSON
+        <input type="file" accept="application/json,.json" style="display:none" onchange="importJson(this)">
+      </label>
+    </div>
+
+    <!-- Импорт .knxproj -->
+    <div class="mqtt-form" id="knxproj-form">
+      <div class="mqtt-field" style="grid-column: 1 / -1;">
+        <label>📥 Импорт .knxproj</label>
+        <div style="display:flex; flex-wrap:wrap; gap:.5rem; align-items:center;">
+          <label class="btn gray" style="cursor:pointer; margin:0;">
+            📁 Выбрать .knxproj
+            <input type="file" accept=".knxproj,.knxprojarchive"
+                   style="display:none" onchange="knxImportProj(this)">
+          </label>
+          <input type="password" id="knxproj-pass"
+                 placeholder="Пароль проекта (если есть)"
+                 style="width:200px; margin:0;">
+          <button class="btn gray" onclick="knxImportProjPreview()">🔍 Предпросмотр</button>
+          <button class="btn primary" onclick="knxImportProjApply()">📥 Импортировать</button>
+        </div>
+        <small>
+          Импорт создаст устройства с готовыми групповыми адресами
+          (read/write и DPT). Существующие устройства не трогаются.
+        </small>
+        <div id="knxproj-file-info" style="font-size:.8rem;opacity:.7;margin-top:.25rem;"></div>
+      </div>
+    </div>
+
+    <!-- Сервер -->
+    <div class="hint" style="margin-top:1rem;">
+      🖥️ <b>Сервер</b>. Порт прослушивания и перезапуск процесса.
+    </div>
+    <div class="mqtt-form" id="server-form" style="margin-bottom:1rem;">
+      <div class="mqtt-field">
+        <label for="srv-host">Хост</label>
+        <input type="text" id="srv-host" placeholder="0.0.0.0" style="width:180px">
+        <small>0.0.0.0 — слушать все интерфейсы; 127.0.0.1 — только локально</small>
+      </div>
+      <div class="mqtt-field">
+        <label for="srv-port">Порт</label>
+        <input type="number" id="srv-port" placeholder="5000" min="1" max="65535" style="width:120px">
+        <small>Стандартный — 5000</small>
+      </div>
+      <div class="mqtt-field">
+        <label>Текущий процесс</label>
+        <div id="srv-pid" style="font-family:monospace;opacity:.85;">—</div>
+        <small id="srv-python" style="opacity:.7;font-family:monospace;">—</small>
+      </div>
+      <div class="mqtt-field mqtt-actions" style="flex-direction:row;gap:.5rem;">
+        <button onclick="saveServerPort()">💾 Сохранить</button>
+        <button class="danger" onclick="restartServer()">♻️ Перезапустить</button>
+      </div>
+    </div>
+
+    <!-- API-токены -->
+    <div class="hint" style="margin-top:1rem;">
+      🔑 <b>API-токены</b>. Долгоживущие токены для интеграций (Node-RED, скрипты).
+    </div>
+    <div class="mqtt-form" id="tokens-form" style="margin-bottom:1rem;">
+      <div class="mqtt-field">
+        <label for="tok-name">Название токена</label>
+        <input type="text" id="tok-name" placeholder="Node-RED" style="width:180px">
+        <small>Чтобы потом понять, для чего он</small>
+      </div>
+      <div class="mqtt-field mqtt-actions" style="flex-direction:row;gap:.5rem;">
+        <button class="btn gray" onclick="createApiToken()">➕ Создать токен</button>
+      </div>
+    </div>
+    <div id="tokens-list" style="max-width:1200px;margin:0 auto 1rem;"></div>
+
+    <!-- Пользователи -->
+    <div class="hint" style="margin-top:1rem;">
+      👥 <b>Пользователи</b>. Создание, смена пароля, удаление.
+    </div>
+    <div class="mqtt-form" id="users-form" style="margin-bottom:1rem;">
+      <div class="mqtt-field">
+        <label for="u-name">Логин</label>
+        <input type="text" id="u-name" placeholder="user1" style="width:180px">
+      </div>
+      <div class="mqtt-field">
+        <label for="u-pass">Пароль</label>
+        <input type="password" id="u-pass" placeholder="••••" style="width:180px">
+      </div>
+      <div class="mqtt-field">
+        <label style="display:flex;gap:.4rem;align-items:center;">
+          <input type="checkbox" id="u-admin"> администратор
+        </label>
+      </div>
+      <div class="mqtt-field mqtt-actions" style="flex-direction:row;gap:.5rem;">
+        <button onclick="createUser()">➕ Создать пользователя</button>
+      </div>
+    </div>
+    <div id="users-list" style="max-width:1200px;margin:0 auto 1rem;"></div>
+
+    <!-- Смена пароля -->
+    <div class="hint" style="margin-top:1rem;">
+      🔑 <b>Смена пароля</b>. Для текущего пользователя.
+    </div>
+    <div class="mqtt-form" id="me-pass-form">
+      <div class="mqtt-field">
+        <label for="me-old">Текущий пароль</label>
+        <input type="password" id="me-old" style="width:180px">
+      </div>
+      <div class="mqtt-field">
+        <label for="me-new">Новый пароль</label>
+        <input type="password" id="me-new" style="width:180px">
+      </div>
+      <div class="mqtt-field mqtt-actions">
+        <button onclick="changeMyPassword()">💾 Сменить пароль</button>
+      </div>
+    </div>
+
+    <!-- Zigbee2MQTT -->
+    <div class="hint" style="margin-top:1rem;">
+      🐝 <b>Zigbee2MQTT</b>. Интеграция с zigbee2mqtt. Подписка на <code>zigbee2mqtt/+/+</code>.
+    </div>
+    <div class="mqtt-form" id="z2m-form">
+      <div class="mqtt-field">
+        <label for="z2m-enabled">Включить Zigbee2MQTT</label>
+        <input type="checkbox" id="z2m-enabled">
+        <small>Подписываться на топики <code>zigbee2mqtt/#</code></small>
+      </div>
+      <div class="mqtt-field">
+        <label for="z2m-base">Base topic</label>
+        <input type="text" id="z2m-base" placeholder="zigbee2mqtt" style="width:200px">
+        <small>Префикс топиков Z2M</small>
+      </div>
+      <div class="mqtt-field">
+        <label for="z2m-host">HTTP API Z2M</label>
+        <input type="text" id="z2m-host" placeholder="http://localhost:8080" style="width:220px">
+        <small>Endpoint <code>/api/devices</code> веб-интерфейса Z2M</small>
+      </div>
+      <div class="mqtt-field mqtt-actions" style="flex-direction:row;gap:.5rem;flex-wrap:wrap;">
+        <button onclick="saveZ2MSettings()">💾 Сохранить</button>
+        <button class="btn" onclick="previewZ2MImport()">🔄 Обновить список Zigbee</button>
+        <button class="btn" onclick="applyZ2MImport()">➕ Импортировать новые</button>
+        <button class="btn" onclick="applyZ2MImportMqtt()">📡 Импорт (MQTT)</button>
+        <div class="mqtt-field">
+          <label>MQTT-кэш bridge/devices</label>
+          <div id="z2m-bridge-info" style="font-family:monospace;opacity:.85;">—</div>
+          <small>Кэш наполняется, если включён MQTT и пришёл retained-топик от Z2M</small>
+        </div>
+      </div>
+    </div>
+    <div id="z2m-list" style="max-width:1200px;margin:0 auto 1rem;"></div>
+
+    <!-- Modbus -->
+    <div class="hint" style="margin-top:1rem;">
+      🔌 <b>Modbus</b>. Общий интервал опроса всех Modbus-устройств.
+    </div>
+    <div class="mqtt-form" id="modbus-form">
+      <div class="mqtt-field">
+        <label for="modbus-poll">Интервал опроса, мс</label>
+        <input type="number" id="modbus-poll" min="200" step="100" style="width:140px">
+        <small>Минимум 200 мс</small>
+      </div>
+      <div class="mqtt-field mqtt-actions">
+        <button onclick="saveModbusSettings()">💾 Сохранить</button>
+      </div>
+    </div>
+
+    <!-- KNX -->
+    <div class="hint" style="margin-top:1rem;">
+      🔗 <b>KNX/IP</b>. Подключение напрямую к KNX-шлюзу через xknx.
+    </div>
+    <div class="mqtt-form" id="knx-form">
+      <div class="mqtt-field">
+        <label for="knx-enabled">Включить KNX</label>
+        <input type="checkbox" id="knx-enabled">
+        <small>Соединение с KNX/IP шлюзом</small>
+      </div>
+      <div class="mqtt-field">
+        <label for="knx-conn">Тип соединения</label>
+        <select id="knx-conn">
+          <option value="automatic">automatic</option>
+          <option value="tunnel">tunnel</option>
+          <option value="routing">routing</option>
+        </select>
+      </div>
+      <div class="mqtt-field">
+        <label for="knx-route-back">NAT (route_back)</label>
+        <input type="checkbox" id="knx-route-back">
+        <small>Включить, если шлюз за NAT</small>
+      </div>
+      <div class="mqtt-field">
+        <label for="knx-gw">IP шлюза</label>
+        <input type="text" id="knx-gw" placeholder="192.168.1.100" style="width:180px">
+        <small>Только для tunnel</small>
+      </div>
+      <div class="mqtt-field">
+        <label for="knx-port">Порт</label>
+        <input type="number" id="knx-port" value="3671" style="width:100px">
+      </div>
+      <div class="mqtt-field">
+        <label for="knx-own">Свой адрес</label>
+        <input type="text" id="knx-own" placeholder="15.15.250" style="width:140px">
+      </div>
+      <div class="mqtt-field mqtt-actions">
+        <button onclick="saveKnxSettings()">💾 Сохранить</button>
+      </div>
+    </div>
+    <div id="knx-status-line" style="max-width:1200px;margin:0 auto 1rem;opacity:.8;font-size:.9rem;"></div>
+
+    <!-- MQTT -->
+    <div class="hint" style="margin-top:1rem;">
+      📡 <b>MQTT</b>. Публикуйте состояния устройств в топики и принимайте команды.
+    </div>
+    <div class="mqtt-form" id="mqtt-toolbar">
+      <div class="mqtt-field">
+        <label for="mqtt-enabled">Включить MQTT</label>
+        <input type="checkbox" id="mqtt-enabled">
+        <small>Подключаться к брокеру и обрабатывать сообщения</small>
+      </div>
+      <div class="mqtt-field">
+        <label for="mqtt-host">Хост брокера</label>
+        <input type="text" id="mqtt-host" placeholder="localhost" style="width:180px">
+      </div>
+      <div class="mqtt-field">
+        <label for="mqtt-port">Порт</label>
+        <input type="number" id="mqtt-port" placeholder="1883" style="width:90px">
+      </div>
+      <div class="mqtt-field">
+        <label for="mqtt-user">Пользователь</label>
+        <input type="text" id="mqtt-user" placeholder="username">
+      </div>
+      <div class="mqtt-field">
+        <label for="mqtt-pass">Пароль</label>
+        <input type="password" id="mqtt-pass" placeholder="password">
+      </div>
+      <div class="mqtt-field">
+        <label for="mqtt-client">Client ID</label>
+        <input type="text" id="mqtt-client" placeholder="smarthome-server" style="width:180px">
+      </div>
+      <div class="mqtt-field">
+        <label for="mqtt-base">Base topic</label>
+        <input type="text" id="mqtt-base" placeholder="smarthome" style="width:180px">
+      </div>
+      <div class="mqtt-field">
+        <label for="mqtt-status">Status topic</label>
+        <input type="text" id="mqtt-status" placeholder="smarthome/status" style="width:200px">
+      </div>
+      <div class="mqtt-field mqtt-actions">
+        <button onclick="saveMqttSettings()">💾 Сохранить</button>
+      </div>
+    </div>
+    <div id="mqtt-status-line" style="max-width:1200px;margin:0 auto 1rem;opacity:.8;font-size:.9rem;"></div>
+    <!-- Telegram -->
+    <div class="hint" style="margin-top:1rem;">
+      ✈️ <b>Telegram</b>. Уведомления и сообщения из Lua-скриптов через Bot API.
+    </div>
+    <div class="mqtt-form" id="telegram-form">
+      <div class="mqtt-field">
+        <label for="tg-enabled">Включить Telegram</label>
+        <input type="checkbox" id="tg-enabled">
+        <small>Разрешает вызовы <code>telegram.*</code> из Lua</small>
+      </div>
+      <div class="mqtt-field">
+        <label for="tg-token">Bot token</label>
+        <input type="password" id="tg-token" placeholder="123456:ABC-DEF…" style="width:280px;">
+        <small id="tg-token-hint">Получите у @BotFather. Оставьте пустым, чтобы не менять.</small>
+      </div>
+      <div class="mqtt-field">
+        <label for="tg-chat">Chat ID по умолчанию</label>
+        <input type="text" id="tg-chat" placeholder="123456789" style="width:180px;">
+        <small>Используется, если chat_id не передан явно</small>
+      </div>
+      <div class="mqtt-field">
+        <label for="tg-parse">Parse mode</label>
+        <select id="tg-parse">
+          <option value="">без разметки</option>
+          <option value="HTML">HTML</option>
+          <option value="Markdown">Markdown</option>
+        </select>
+		</div>
+		<div class="mqtt-field">
+    <label for="tg-proxy">Прокси (URL)</label>
+    <input type="text" id="tg-proxy" placeholder="http://user:pass@host:port или socks5://host:port" style="width:280px;">
+    <small>Оставьте пустым для прямого подключения. Пример: http://127.0.0.1:8080</small>
+</div>
+      <div class="mqtt-field">
+        <label style="display:flex;gap:.4rem;align-items:center;">
+          <input type="checkbox" id="tg-notify-errors"> сообщать об ошибках скриптов
+        </label>
+      </div>
+      <div class="mqtt-field mqtt-actions" style="flex-direction:row;gap:.5rem;flex-wrap:wrap;">
+        <button onclick="saveTelegramSettings()">💾 Сохранить</button>
+        <button class="btn gray" onclick="testTelegram()">🧪 Тест</button>
+      </div>
+      <div id="tg-status" style="grid-column:1/-1;font-size:.85rem;opacity:.85;"></div>
+    </div>
+  </div><!-- /system-view -->
+
+</div><!-- /edit-ui -->
+
+<!-- ============================================================
+     Скрипты: подключаем по порядку
+     ============================================================ -->
+
+<!-- 1. Переменные и константы -->
+<script src="{{ url_for('static', filename='state.js') }}"></script>
+<script src="{{ url_for('static', filename='constants.js') }}"></script>
+
+<!-- 2. Утилиты -->
+<script src="{{ url_for('static', filename='core.js') }}"></script>
+
+<!-- 3. UI-модули -->
+<script src="{{ url_for('static', filename='ui/modals.js') }}"></script>
+<script src="{{ url_for('static', filename='ui/devices.js') }}"></script>
+<script src="{{ url_for('static', filename='ui/charts.js') }}"></script>
+<script src="{{ url_for('static', filename='ui/plan.js') }}"></script>
+<script src="{{ url_for('static', filename='ui/knx.js') }}"></script>
+<script src="{{ url_for('static', filename='ui/mqtt.js') }}"></script>
+<script src="{{ url_for('static', filename='ui/scenarios.js') }}"></script>
+<script src="{{ url_for('static', filename='ui/events.js') }}"></script>
+<script src="{{ url_for('static', filename='ui/timers.js') }}"></script>
+<script src="{{ url_for('static', filename='ui/lua.js') }}"></script>
+<script src="{{ url_for('static', filename='ui/logs.js') }}"></script>
+<script src="{{ url_for('static', filename='ui/system.js') }}"></script>
+
+<!-- 4. Сторонние генераторы -->
+<script src="{{ url_for('static', filename='sh-common.js') }}"></script>
+<script src="{{ url_for('static', filename='sh-nodered-ws.js') }}"></script>
+<script src="{{ url_for('static', filename='sh-nodered-http.js') }}"></script>
+<script src="{{ url_for('static', filename='nodered.js') }}"></script>
+<script src="{{ url_for('static', filename='sh-http-curl.js') }}"></script>
+<script src="{{ url_for('static', filename='sh-export-type.js') }}"></script>
+
+<!-- 5. Точка входа -->
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
