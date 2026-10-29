@@ -1,0 +1,31 @@
+# ============================================================
+# GS Smart — Python-зависимости
+# ============================================================
+
+# --- Web / Flask ---
+Flask>=3.0,<4.0
+Werkzeug>=3.0,<4.0
+Jinja2>=3.1,<4.0
+itsdangerous>=2.2,<3.0
+click>=8.1,<9.0
+blinker>=1.7,<2.0
+waitress>=3.0,<4.0
+
+# --- HTTP-клиент (events.py, scenarios.py, http_client.py) ---
+requests>=2.31,<3.0
+PySocks>=1.7.1,<2.0
+
+# --- MQTT (mqtt_client.py, zigbee2mqtt.py) ---
+paho-mqtt>=2.0,<3.0
+
+# --- Modbus TCP/RTU (modbus_client.py) ---
+pymodbus>=3.6,<4.0
+
+# --- KNX/IP (knx_client.py) ---
+xknx>=3.20,<4.0
+
+# --- Криптография для xknx (secure KNX/IP, tunnel с шифрованием) ---
+cryptography>=42.0,<46.0
+
+# --- Опционально: YAML (config.yaml) ---
+PyYAML>=6.0,<7.0
