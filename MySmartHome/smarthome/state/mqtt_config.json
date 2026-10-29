@@ -1,0 +1,14 @@
+{
+  "settings": {
+    "enabled": true,
+    "host": "localhost",
+    "port": 1883,
+    "username": "",
+    "password": "",
+    "client_id": "smarthome-server",
+    "base_topic": "smarthome",
+    "keepalive": 60,
+    "status_topic": "smarthome/status"
+  },
+  "triggers": {}
+}
