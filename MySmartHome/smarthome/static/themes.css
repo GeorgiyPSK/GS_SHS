@@ -1,0 +1,797 @@
+/* ============================================================
+   Базовые переменные и общие стили
+   ============================================================ */
+:root {
+  --bg-grad-1: #1e3c72;
+  --bg-grad-2: #2a5298;
+
+  --text:        #ffffff;
+  --text-dim:    rgba(255,255,255,.7);
+  --text-muted:  rgba(255,255,255,.55);
+
+  --panel-bg:       rgba(0,0,0,.25);
+  --panel-bg-2:     rgba(0,0,0,.15);
+  --panel-border:   rgba(255,255,255,.2);
+  --panel-border-2: rgba(255,255,255,.15);
+
+  --btn-bg:        rgba(255,255,255,.1);
+  --btn-bg-hover:  rgba(255,255,255,.2);
+  --btn-border:    rgba(255,255,255,.25);
+  --btn-border-hover: rgba(255,255,255,.4);
+
+  --accent:        #4caf50;
+  --accent-hover:  #43a047;
+  --accent-2:      #4fc3f7;   /* голубой акцент */
+  --accent-2-hover:#29b6f6;
+  --danger:        #e53935;
+  --danger-hover:  #c62828;
+  --warn:          #ef6c00;
+  --alert:         #c62828;
+
+  --input-bg:      rgba(0,0,0,.25);
+  --input-border:  rgba(255,255,255,.25);
+  --input-focus:   #4fc3f7;
+
+  --modal-bg-1: #24477f;
+  --modal-bg-2: #2f5da8;
+
+  --plan-bg-1: rgba(255,255,255,.06);
+  --plan-bg-2: rgba(255,255,255,.02);
+
+  --shadow: 0 12px 40px rgba(0,0,0,.5);
+}
+
+/* ============================================================
+   Общие стили
+   ============================================================ */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  font-family: 'Segoe UI', 'Segoe UI Emoji', 'Apple Color Emoji',
+               'Noto Color Emoji', Arial, sans-serif;
+  background: linear-gradient(135deg, var(--bg-grad-1) 0%, var(--bg-grad-2) 100%);
+  color: var(--text); min-height: 100vh;
+  -webkit-tap-highlight-color: transparent;
+}
+body { padding: 1rem; }
+
+/* Шапка */
+.header {
+  display: flex; align-items: center; gap: .8rem;
+  padding: .6rem 1rem; margin-bottom: 1rem;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+  flex-wrap: wrap;
+}
+.header h1 { font-size: 1.2rem; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.header button,
+.header select {
+  padding: .45rem .9rem;
+  border-radius: 9px;
+  border: 1px solid var(--btn-border);
+  background: var(--btn-bg);
+  color: var(--text);
+  cursor: pointer;
+  font-size: .9rem;
+  font-family: inherit;
+  transition: background .15s ease, border-color .15s ease;
+}
+.header button:hover,
+.header select:hover {
+  background: var(--btn-bg-hover);
+  border-color: var(--btn-border-hover);
+}
+.header select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 30px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--text) 50%),
+    linear-gradient(135deg, var(--text) 50%, transparent 50%);
+  background-position:
+    calc(100% - 16px) calc(50% - 2px),
+    calc(100% - 11px) calc(50% - 2px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  max-width: 100%;
+}
+.header select option {
+  background: var(--bg-grad-1);
+  color: var(--text);
+}
+.header .status {
+  font-size: .8rem; opacity: .8;
+  padding: .3rem .7rem; border-radius: 9px;
+  background: var(--panel-bg);
+  white-space: nowrap;
+}
+.header .status.online  { color: #b9f6ca; }
+.header .status.offline { color: #ff8a80; }
+
+/* Главные вкладки */
+.main-tabs { display: flex; gap: .5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.main-tabs button {
+  flex: 1 1 auto; min-width: 120px;
+  padding: .6rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--btn-border);
+  background: var(--btn-bg);
+  color: var(--text);
+  font-size: 1rem; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+  transition: background .15s ease;
+}
+.main-tabs button.active { background: var(--accent); border-color: var(--accent); }
+.main-tabs button:hover  { background: var(--btn-bg-hover); }
+
+/* Хлебные крошки */
+.breadcrumb { display: flex; gap: .4rem; align-items: center; margin-bottom: .8rem; flex-wrap: wrap; }
+.breadcrumb .crumb {
+  padding: .35rem .9rem; border-radius: 999px;
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
+  cursor: pointer; font-size: .9rem;
+}
+.breadcrumb .crumb.active { background: var(--accent); border-color: var(--accent); cursor: default; }
+.breadcrumb .sep { opacity: .5; }
+
+/* План */
+#planWrap {
+  position: relative;
+  width: 100%; max-width: 1200px;
+  margin: 0 auto;
+  background: repeating-conic-gradient(var(--plan-bg-1) 0% 25%, var(--plan-bg-2) 0% 50%) 0 0/40px 40px;
+  border: 1px solid var(--panel-border);
+  border-radius: 18px;
+  overflow: hidden;
+  user-select: none;
+  min-height: 200px;
+}
+#planWrap img { display: block; width: 100%; height: auto; pointer-events: none; }
+.plan-empty { padding: 4rem 2rem; text-align: center; font-size: 1.1rem; opacity: .85; }
+.plan-empty small { display: block; opacity: .7; margin-top: .5rem; }
+
+.room-zone {
+  position: absolute;
+  border: 2px solid rgba(255,255,255,.45);
+  background: rgba(76,175,80,.15);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background .2s, border-color .2s;
+  display: flex; align-items: flex-start; justify-content: flex-start;
+  padding: 4px 8px;
+  color: var(--text); font-size: .9rem; font-weight: 600;
+  text-shadow: 1px 1px 3px rgba(0,0,0,.7);
+  overflow: hidden;
+}
+.room-zone:hover { background: rgba(76,175,80,.3); border-color: rgba(255,255,255,.7); }
+
+/* Пин */
+.pin {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 44px; height: 44px; border-radius: 50%;
+  background: rgba(0,0,0,.55);
+  border: 2px solid rgba(255,255,255,.85);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.3rem; cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,.4);
+  transition: transform .15s, box-shadow .2s, border-color .2s;
+  z-index: 3;
+}
+.pin:hover { transform: translate(-50%, -50%) scale(1.12); z-index: 4; }
+.pin.ok    { border-color: #66bb6a; }
+.pin.warn  { border-color: #ffa726; }
+.pin.alert { border-color: #ef5350; }
+.pin.off { opacity: 1; }
+.pin .label {
+  position: absolute; top: 48px; left: 50%; transform: translateX(-50%);
+  background: rgba(0,0,0,.75); padding: 2px 8px; border-radius: 8px;
+  font-size: .75rem; white-space: nowrap; pointer-events: none;
+  opacity: 0; transition: opacity .2s;
+}
+.pin:hover .label { opacity: 1; }
+.pin .val {
+  position: absolute; top: -8px; right: -8px;
+  min-width: 20px; height: 20px; padding: 0 5px;
+  border-radius: 10px; background: var(--accent);
+  color: #fff; font-size: .7rem; font-weight: 700;
+  line-height: 20px; text-align: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,.5);
+  border: 1px solid rgba(255,255,255,.6);
+  white-space: nowrap;
+}
+.pin .val.warn  { background: var(--warn); }
+.pin .val.alert { background: var(--alert); }
+.pin .val.off   { background: #616161; }
+.pin .val.ok    { background: #2e7d32; }
+
+/* Карточки устройств */
+.rooms-sections { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.2rem; }
+.room-section {
+  background: var(--panel-bg-2);
+  border: 1px solid var(--panel-border-2);
+  border-radius: 16px;
+  padding: .9rem 1rem;
+}
+.room-section-head {
+  display: flex; align-items: center; gap: .5rem;
+  margin-bottom: .8rem; padding-bottom: .5rem;
+  border-bottom: 1px solid var(--panel-border-2);
+}
+.room-section-head .icon { font-size: 1.5rem; }
+.room-section-head .name { font-size: 1.1rem; font-weight: 600; flex: 1; }
+.room-section-head .count {
+  font-size: .85rem; opacity: .7;
+  background: var(--btn-bg);
+  padding: 2px 8px; border-radius: 999px;
+}
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: .8rem;
+}
+.dev-card {
+  background: var(--btn-bg);
+  border: 1px solid var(--panel-border-2);
+  border-radius: 14px;
+  padding: .8rem .9rem;
+  display: flex; flex-direction: column;
+  transition: transform .15s, background .15s;
+}
+.dev-card:hover { background: var(--btn-bg-hover); }
+.dev-card .dc-head { display: flex; align-items: center; gap: .5rem; margin-bottom: .4rem; }
+.dev-card .dc-icon { font-size: 1.6rem; }
+.dev-card .dc-name { flex: 1; font-size: 1rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dev-card .dc-type { font-size: .72rem; opacity: .65; text-transform: uppercase; letter-spacing: .5px; }
+.dev-card .dc-value { font-size: 1.25rem; font-weight: 700; margin: .2rem 0; }
+.dev-card .dc-sub { font-size: .82rem; opacity: .75; margin-bottom: .5rem; }
+.dev-card .dc-controls { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: auto; }
+.dev-card .dc-controls button {
+  flex: 1 1 auto; min-width: 70px;
+  padding: .45rem .6rem;
+  border-radius: 9px; border: none;
+  background: var(--btn-bg-hover);
+  color: var(--text); font-size: .85rem; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+}
+.dev-card .dc-controls button:hover { background: rgba(255,255,255,.3); }
+.dev-card .dc-controls button.on  { background: var(--accent); }
+.dev-card .dc-controls button.off { background: #9e9e9e; }
+.dev-card input[type=range] { width: 100%; margin: .3rem 0; }
+
+/* Модалка */
+#modal {
+  position: fixed; z-index: 200;
+  background: linear-gradient(135deg, var(--modal-bg-1) 0%, var(--modal-bg-2) 100%);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  padding: 1rem 1.1rem;
+  width: 320px; max-width: 92vw;
+  display: none;
+}
+#modal.open { display: block; }
+#modal h3 { font-size: 1.05rem; margin-bottom: .3rem; display: flex; align-items: center; gap: .4rem; }
+#modal .sub { font-size: .8rem; opacity: .75; margin-bottom: .8rem; }
+#modal .row { display: flex; gap: .5rem; margin: .5rem 0; align-items: center; }
+#modal .row label { flex: 0 0 90px; font-size: .85rem; opacity: .8; }
+#modal .row input[type=range] { flex: 1; }
+#modal .row input[type=text],
+#modal .row select {
+  flex: 1; padding: .4rem .6rem; border-radius: 8px;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg); color: var(--text); font-size: .9rem;
+}
+#modal .row input[type=checkbox] { width: 18px; height: 18px; }
+#modal .val { font-size: .85rem; opacity: .85; }
+#modal .btns { display: flex; gap: .4rem; margin-top: .9rem; flex-wrap: wrap; }
+#modal .btns button {
+  flex: 1; min-width: 80px;
+  padding: .5rem .8rem; border-radius: 9px; border: none;
+  background: var(--btn-bg-hover); color: var(--text);
+  font-size: .9rem; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+#modal .btns button.primary { background: var(--accent); }
+#modal .btns button.danger  { background: var(--danger); }
+#modal .btns button:hover { filter: brightness(1.1); }
+#modal .close {
+  position: absolute; top: 6px; right: 10px;
+  background: transparent; border: none; color: var(--text);
+  font-size: 1.3rem; cursor: pointer; opacity: .7;
+}
+#modal .close:hover { opacity: 1; }
+
+/* Тост */
+#toast {
+  position: fixed; top: 1rem; left: 50%; transform: translateX(-50%);
+  background: #2e7d32; color: #fff; padding: .5rem 1rem;
+  border-radius: 9px; font-size: .9rem;
+  opacity: 0; transition: opacity .25s; pointer-events: none;
+  z-index: 300;
+}
+#toast.show { opacity: 1; }
+#toast.error { background: var(--danger); }
+
+/* Адаптация под мобильные */
+@media (max-width: 700px) {
+  body { padding: .6rem; }
+  .header { padding: .5rem .7rem; gap: .5rem; }
+  .header h1 { font-size: 1rem; flex: 1 1 100%; order: -1; white-space: normal; line-height: 1.2; }
+  .header select { flex: 1 1 auto; min-width: 0; font-size: 1rem; padding: .55rem .9rem; }
+  .header .status { flex: 0 0 auto; font-size: .75rem; }
+  .main-tabs button { flex: 1 1 0; min-width: 0; padding: .7rem .5rem; font-size: .95rem; }
+  .breadcrumb .crumb { padding: .4rem .8rem; font-size: .85rem; }
+  #planWrap { border-radius: 12px; }
+  #planWrap img { min-width: 100%; }
+  .pin { width: 48px; height: 48px; font-size: 1.4rem; }
+  .pin .label { opacity: 1; top: 52px; font-size: .7rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+  .cards-grid { grid-template-columns: 1fr; gap: .6rem; }
+  .dev-card { padding: .7rem .8rem; }
+  .dev-card .dc-controls button { padding: .6rem .6rem; font-size: .9rem; }
+  #modal {
+    left: 0 !important; top: auto !important;
+    bottom: 0;
+    width: 100% !important; max-width: 100% !important;
+    border-radius: 18px 18px 0 0;
+    max-height: 85vh; overflow-y: auto;
+    padding: 1rem 1.1rem 1.2rem;
+  }
+  #modal .btns button { padding: .7rem .8rem; font-size: .95rem; }
+}
+@media (max-width: 380px) {
+  .header h1 { font-size: .95rem; }
+  .main-tabs button { font-size: .9rem; padding: .6rem .3rem; }
+  .breadcrumb .crumb { padding: .35rem .6rem; font-size: .8rem; }
+  .dev-card .dc-name { font-size: .95rem; }
+  .dev-card .dc-value { font-size: 1.1rem; }
+}
+
+/* ============================================================
+   ТЕМЫ
+   ============================================================ */
+/* Каждая тема переопределяет переменные. По умолчанию — тёмно-синяя
+   (та, что была). Ниже — ещё несколько вариантов. */
+
+/* --- 1. Deep Blue (по умолчанию) --- */
+:root, body.theme-deepblue {
+  --bg-grad-1: #1e3c72;
+  --bg-grad-2: #2a5298;
+  --text: #fff;
+  --text-dim: rgba(255,255,255,.7);
+  --panel-bg: rgba(0,0,0,.25);
+  --panel-bg-2: rgba(0,0,0,.15);
+  --panel-border: rgba(255,255,255,.2);
+  --panel-border-2: rgba(255,255,255,.15);
+  --btn-bg: rgba(255,255,255,.1);
+  --btn-bg-hover: rgba(255,255,255,.2);
+  --btn-border: rgba(255,255,255,.25);
+  --btn-border-hover: rgba(255,255,255,.4);
+  --accent: #4caf50;
+  --accent-hover: #43a047;
+  --modal-bg-1: #24477f;
+  --modal-bg-2: #2f5da8;
+}
+
+/* --- 2. Midnight (почти чёрная, холодная) --- */
+body.theme-midnight {
+  --bg-grad-1: #0b1220;
+  --bg-grad-2: #16213a;
+  --text: #e6eefc;
+  --text-dim: rgba(230,238,252,.7);
+  --panel-bg: rgba(255,255,255,.04);
+  --panel-bg-2: rgba(255,255,255,.03);
+  --panel-border: rgba(255,255,255,.12);
+  --panel-border-2: rgba(255,255,255,.08);
+  --btn-bg: rgba(255,255,255,.06);
+  --btn-bg-hover: rgba(255,255,255,.12);
+  --btn-border: rgba(255,255,255,.15);
+  --btn-border-hover: rgba(255,255,255,.3);
+  --accent: #4fc3f7;
+  --accent-hover: #29b6f6;
+  --modal-bg-1: #111a2e;
+  --modal-bg-2: #182640;
+}
+
+/* --- 3. Forest (зелёная) --- */
+body.theme-forest {
+  --bg-grad-1: #134e2c;
+  --bg-grad-2: #1e6b3f;
+  --text: #f0fff4;
+  --text-dim: rgba(240,255,244,.7);
+  --panel-bg: rgba(0,0,0,.25);
+  --panel-bg-2: rgba(0,0,0,.15);
+  --panel-border: rgba(255,255,255,.18);
+  --panel-border-2: rgba(255,255,255,.12);
+  --btn-bg: rgba(255,255,255,.1);
+  --btn-bg-hover: rgba(255,255,255,.2);
+  --btn-border: rgba(255,255,255,.22);
+  --btn-border-hover: rgba(255,255,255,.4);
+  --accent: #a5d6a7;
+  --accent-hover: #81c784;
+  --modal-bg-1: #14532d;
+  --modal-bg-2: #1f6b3f;
+}
+
+/* --- 4. Sunset (тёплая, оранжево-фиолетовая) --- */
+body.theme-sunset {
+  --bg-grad-1: #3a1c71;
+  --bg-grad-2: #d76d77;
+  --text: #fff8f0;
+  --text-dim: rgba(255,248,240,.75);
+  --panel-bg: rgba(0,0,0,.3);
+  --panel-bg-2: rgba(0,0,0,.2);
+  --panel-border: rgba(255,255,255,.2);
+  --panel-border-2: rgba(255,255,255,.15);
+  --btn-bg: rgba(255,255,255,.1);
+  --btn-bg-hover: rgba(255,255,255,.22);
+  --btn-border: rgba(255,255,255,.25);
+  --btn-border-hover: rgba(255,255,255,.45);
+  --accent: #ffb74d;
+  --accent-hover: #ffa726;
+  --modal-bg-1: #4a2380;
+  --modal-bg-2: #b25a67;
+}
+
+/* --- 5. Light (светлая) --- */
+body.theme-light {
+  --bg-grad-1: #eef2f7;
+  --bg-grad-2: #dfe8f3;
+  --text: #1c2530;
+  --text-dim: rgba(28,37,48,.7);
+  --panel-bg: rgba(255,255,255,.75);
+  --panel-bg-2: rgba(255,255,255,.6);
+  --panel-border: rgba(0,0,0,.12);
+  --panel-border-2: rgba(0,0,0,.08);
+  --btn-bg: rgba(0,0,0,.05);
+  --btn-bg-hover: rgba(0,0,0,.1);
+  --btn-border: rgba(0,0,0,.15);
+  --btn-border-hover: rgba(0,0,0,.3);
+  --accent: #2e7d32;
+  --accent-hover: #1b5e20;
+  --input-bg: rgba(0,0,0,.05);
+  --input-border: rgba(0,0,0,.15);
+  --input-focus: #2e7d32;
+  --modal-bg-1: #ffffff;
+  --modal-bg-2: #f3f6fa;
+  --plan-bg-1: rgba(0,0,0,.05);
+  --plan-bg-2: rgba(0,0,0,.02);
+  --shadow: 0 12px 40px rgba(0,0,0,.15);
+}
+body.theme-light .header select option { background: #ffffff; color: #1c2530; }
+body.theme-light .pin { background: rgba(0,0,0,.75); }
+body.theme-light .pin .label { background: rgba(0,0,0,.8); color: #fff; }
+body.theme-light .dev-card .dc-controls button.off { background: #bdbdbd; color: #1c2530; }
+body.theme-light #toast { color: #fff; }
+
+/* --- 6. High Contrast (чёрно-белая с ярким акцентом) --- */
+body.theme-hc {
+  --bg-grad-1: #000;
+  --bg-grad-2: #000;
+  --text: #fff;
+  --text-dim: #ddd;
+  --panel-bg: #111;
+  --panel-bg-2: #0a0a0a;
+  --panel-border: #fff;
+  --panel-border-2: #888;
+  --btn-bg: #111;
+  --btn-bg-hover: #222;
+  --btn-border: #fff;
+  --btn-border-hover: #ff0;
+  --accent: #ffea00;
+  --accent-hover: #ffd600;
+  --danger: #ff1744;
+  --modal-bg-1: #000;
+  --modal-bg-2: #111;
+  --input-bg: #000;
+  --input-border: #fff;
+  --input-focus: #ffea00;
+}
+body.theme-hc .main-tabs button.active,
+body.theme-hc .breadcrumb .crumb.active,
+body.theme-hc .dev-card .dc-controls button.on {
+  color: #000;
+}
+body.theme-hc .pin { background: #000; border-color: #fff; }
+body.theme-hc #toast { background: #ffea00; color: #000; }
+
+/* ============================================================
+   Универсальные модальные окна (.modal-overlay / .modal)
+   Используются в cf-modal (кастомное поле),
+   ctype-modal (тип устройства) и ph-modal (плейсхолдеры).
+   ============================================================ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 150;
+  padding: 1rem;
+}
+.modal-overlay.open { display: flex; }
+
+.modal {
+  background: linear-gradient(135deg, var(--modal-bg-1) 0%, var(--modal-bg-2) 100%);
+  border: 1px solid var(--panel-border);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  max-width: 460px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  animation: modalIn .18s ease;
+}
+@keyframes modalIn {
+  from { transform: translateY(8px) scale(.98); opacity: 0; }
+  to   { transform: translateY(0)    scale(1);   opacity: 1; }
+}
+.modal .modal-close {
+  position: absolute; top: 8px; right: 10px;
+  background: transparent; border: none; color: var(--text);
+  font-size: 1.4rem; cursor: pointer; opacity: .7;
+  z-index: 2;
+}
+.modal .modal-close:hover { opacity: 1; }
+
+/* ============================================================
+   Виджеты-графики на плане (режим просмотра)
+   ============================================================ */
+.plan-chart {
+  position: absolute;
+  z-index: 4;
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 10px;
+  padding: 4px 6px 6px;
+  display: flex;
+  flex-direction: column;
+  min-width: 120px;
+  min-height: 90px;
+  box-sizing: border-box;
+  user-select: none;
+}
+.plan-chart .pc-head {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  font-size: .75rem;
+  opacity: .95;
+  margin-bottom: 2px;
+}
+.plan-chart .pc-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.plan-chart .pc-refresh {
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: .85rem;
+  padding: 0 .2rem;
+  opacity: .7;
+}
+.plan-chart .pc-refresh:hover { opacity: 1; }
+.plan-chart .pc-canvas-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.plan-chart canvas { width: 100% !important; height: 100% !important; }
+
+.plan-chart {
+  cursor: pointer;
+}
+.plan-chart .pc-refresh {
+  cursor: pointer;
+}
+#modal.open {
+  display: block;
+}
+
+#modal {
+  /* базовое — уже есть, но подстрахуемся */
+  position: fixed;
+  z-index: 200;
+  display: none;
+  max-width: 360px;
+  min-width: 260px;
+  max-height: 90vh;
+  overflow-y: auto;
+
+  /* внешний вид */
+  padding: 1rem 1.2rem;
+  background: linear-gradient(135deg, #24477f 0%, #2f5da8 100%);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 20px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.55);
+}
+
+#modal.open {
+  display: block;
+}
+
+/* кнопка закрытия в правом верхнем углу */
+#modal .close {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 1.3rem;
+  cursor: pointer;
+  opacity: .7;
+}
+#modal .close:hover { opacity: 1; }
+
+/* заголовок и подпись */
+#modal h3 {
+  margin: 0 1.4rem .3rem 0;
+  font-size: 1.1rem;
+}
+#modal .sub {
+  opacity: .75;
+  font-size: .85rem;
+  margin-bottom: .6rem;
+}
+
+/* строки внутри модалки */
+#modal .row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  margin: .35rem 0;
+}
+#modal .row label { opacity: .8; font-size: .9rem; }
+#modal .row .val { font-weight: 600; }
+#modal .row input[type="range"] { flex: 1; }
+
+/* блок кнопок внизу */
+#modal .btns {
+  display: flex;
+  gap: .4rem;
+  margin-top: .8rem;
+  flex-wrap: wrap;
+}
+#modal .btns button {
+  flex: 1;
+  min-width: 100px;
+}
+
+/* ============================================================
+   Поля ввода и кнопки внутри модалок
+   (chart-modal, cf-modal, ctype-modal, ph-modal, …)
+   ============================================================ */
+.modal input[type="text"],
+.modal input[type="number"],
+.modal input[type="password"],
+.modal input[type="url"],
+.modal input[type="datetime-local"],
+.modal input[type="time"],
+.modal input[type="date"],
+.modal select,
+.modal textarea {
+  padding: .5rem .7rem;
+  border-radius: 10px;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: .9rem;
+  outline: none;
+  width: 100%;
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+
+.modal input:focus,
+.modal select:focus,
+.modal textarea:focus {
+  border-color: var(--input-focus);
+  box-shadow: 0 0 0 2px rgba(79,195,247,.25);
+}
+
+.modal input::placeholder,
+.modal textarea::placeholder {
+  color: var(--text-muted);
+}
+
+/* Стрелка у select в модалке */
+.modal select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 30px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--text) 50%),
+    linear-gradient(135deg, var(--text) 50%, transparent 50%);
+  background-position:
+    calc(100% - 16px) calc(50% - 2px),
+    calc(100% - 11px) calc(50% - 2px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
+.modal select option {
+  background: var(--modal-bg-1);
+  color: var(--text);
+}
+
+/* Кнопки в модалке */
+.modal .btn,
+.modal button.btn,
+.modal .modal-close + div button,
+.modal-overlay .modal button:not(.modal-close):not(.btn):not(.pc-refresh):not(.pc-remove) {
+  /* базовое — оставим совместимость с уже существующими .btn */
+}
+
+/* Общий стиль .btn внутри модалок (для классов btn small gray, btn primary и т.п.) */
+.modal .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .3rem;
+  padding: .5rem .9rem;
+  border-radius: 10px;
+  border: 1px solid var(--btn-border);
+  background: var(--btn-bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: .9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, transform .1s ease;
+}
+.modal .btn:hover {
+  background: var(--btn-bg-hover);
+  border-color: var(--btn-border-hover);
+}
+.modal .btn:active {
+  transform: translateY(1px);
+}
+
+.modal .btn.small {
+  padding: .35rem .7rem;
+  font-size: .85rem;
+}
+.modal .btn.gray {
+  background: var(--btn-bg);
+  border-color: var(--btn-border);
+}
+.modal .btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.modal .btn.primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+.modal .btn.green {
+  background: #2e7d32;
+  border-color: #2e7d32;
+  color: #fff;
+}
+.modal .btn.green:hover { background: #1b5e20; border-color: #1b5e20; }
+.modal .btn.danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+.modal .btn.danger:hover {
+  background: var(--danger-hover);
+  border-color: var(--danger-hover);
+}
+
+/* Отмена и Добавить — правый нижний угол, но в одну линию */
+.modal .actions,
+.modal > div > div[style*="justify-content:flex-end"] {
+  /* не ломаем inline-стили, но подстрахуемся от разрывов */
+}
