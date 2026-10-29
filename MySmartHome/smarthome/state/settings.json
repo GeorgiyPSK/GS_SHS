@@ -23,7 +23,7 @@
     "write_suffix": "/write",
     "value_format": "json",
     "connection": "tunnel",
-    "gateway_ip": "95.104.235.30",
+    "gateway_ip": "",
     "gateway_port": 32671,
     "own_address": "15.15.250",
     "individual_address": "15.15.250"
