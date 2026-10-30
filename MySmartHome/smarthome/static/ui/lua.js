@@ -41,22 +41,46 @@ function luaHighlight(src) {
   return out;
 }
 
+function renderLuaGutter(ta) {
+  const wrap = ta.closest('.lua-editor-wrap');
+  if (!wrap) return;
+  const gutter = wrap.querySelector('.lua-gutter');
+  if (!gutter) return;
+
+  // число строк = число переносов + 1 (учитываем и мягкие переносы — грубо)
+  const lines = ta.value.split('\n').length;
+  let html = '';
+  for (let i = 1; i <= lines; i++) html += `<div>${i}</div>`;
+  gutter.innerHTML = html;
+
+  // ширина gutter — по числу цифр в последнем номере
+  const digits = String(lines).length;
+  gutter.style.minWidth = (digits + 1) + 'ch';
+}
+
 function onLuaCodeInput(ta) {
   const wrap = ta.closest('.lua-editor-wrap');
   if (!wrap) return;
   const pre = wrap.querySelector('.lua-highlight');
-  if (!pre) return;
-  pre.innerHTML = luaHighlight(ta.value);
+  if (pre) pre.innerHTML = luaHighlight(ta.value);
+
+  renderLuaGutter(ta);
   syncLuaScroll(ta);
 }
 
 function syncLuaScroll(ta) {
   const wrap = ta.closest('.lua-editor-wrap');
   if (!wrap) return;
-  const pre = wrap.querySelector('.lua-highlight');
-  if (!pre) return;
-  pre.scrollTop  = ta.scrollTop;
-  pre.scrollLeft = ta.scrollLeft;
+  const pre    = wrap.querySelector('.lua-highlight');
+  const gutter = wrap.querySelector('.lua-gutter');
+
+  if (pre) {
+    pre.scrollTop  = ta.scrollTop;
+    pre.scrollLeft = ta.scrollLeft;
+  }
+  if (gutter) {
+    gutter.scrollTop = ta.scrollTop;
+  }
 }
 
 /* --- Переключение темы --- */
@@ -342,13 +366,16 @@ function renderLuaEditor() {
         </details>
 
         <div class="lua-editor-wrap${themeClass}" style="position:relative; height:${savedH}px;">
-          <pre class="lua-highlight" aria-hidden="true"></pre>
-          <textarea data-key="code"
-            class="lua-input"
-            oninput="onLuaCodeInput(this); markRowDirty(this); _luaEditorDirty = true;"
-            onscroll="syncLuaScroll(this)"
-            spellcheck="false"
-            placeholder="-- Lua-скрипт&#10;log('Привет')">${esc(s.code)}</textarea>
+          <div class="lua-gutter" aria-hidden="true"></div>
+          <div class="lua-code-area">
+            <pre class="lua-highlight" aria-hidden="true"></pre>
+            <textarea data-key="code"
+              class="lua-input"
+              oninput="onLuaCodeInput(this); markRowDirty(this); _luaEditorDirty = true;"
+              onscroll="syncLuaScroll(this)"
+              spellcheck="false"
+              placeholder="-- Lua-скрипт&#10;log('Привет')">${esc(s.code)}</textarea>
+          </div>
         </div>
         ${s.updated ? `<div style="font-size:.75rem;opacity:.6;">обновлён: ${esc(s.updated)}</div>` : ''}
       </div>
