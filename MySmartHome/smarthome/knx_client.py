@@ -536,6 +536,7 @@ def _handle_target(tgt, dst, src, payload, parsed_value, parsed_dpt):
         if parsed_value is None:
             return
         _ga_store_set_value(dst, parsed_value, source="bus")
+        _notify_ga_changed_ui(dst, parsed_value)
         if event_bus is not None:
             try:
                 event_bus.publish(
@@ -586,6 +587,7 @@ def _handle_target(tgt, dst, src, payload, parsed_value, parsed_dpt):
 
     # обновляем реестр GA даже если state не изменился
     _ga_store_set_value(dst, value, source="bus")
+    _notify_ga_changed_ui(dst, value)
     # будим ожидающих (на случай, если dpt в реестре был не тот)
     _notify_ga_waiters(dst, value)
 
@@ -964,6 +966,14 @@ def _notify_ga_waiters(addr: str, value):
         except Exception:
             pass
 
+def _notify_ga_changed_ui(dst: str, value):
+    """Точечное обновление строки GA в UI (SSE)."""
+    try:
+        from api import notify_clients
+        notify_clients("knx_ga_changed", {"address": dst, "value": value})
+    except Exception:
+        pass
+
 def _ga_store_get(addr: str) -> dict | None:
     if knx_ga_store is None:
         return None
@@ -1033,3 +1043,4 @@ def read_group_address_sync(addr: str, timeout: float = 2.0,
                 lst.remove(q)
             if lst is not None and not lst:
                 _ga_waiters.pop(addr, None)
+
