@@ -62,7 +62,22 @@ _ui_notify_last_ts = 0.0
 UI_NOTIFY_MIN_INTERVAL = 0.5   # сек — не чаще 2 раз в секунду
 
 
+def _do_notify_clients_changed():
+    """
+    Реальная отправка 'changed' в SSE.
+    Именно эту строку раньше слал notify_state_changed().
+    """
+    try:
+        notify_clients("changed", None)
+    except Exception as e:
+        log.warning("[api] notify changed error: %s", e)
+
+
 def notify_state_changed():
+    """
+    Публичная функция с дебаунсом: не чаще 2 раз в секунду.
+    Вызывается из knx_client, modbus_client, devices.set_device_state и т.д.
+    """
     global _ui_notify_pending, _ui_notify_last_ts
 
     now = time.time()
