@@ -20,6 +20,16 @@ from datetime import datetime
 
 from state import state, save_state
 
+try:
+    import knx_ga_store
+except Exception:
+    knx_ga_store = None
+
+try:
+    import event_bus
+except Exception:
+    event_bus = None
+
 log = logging.getLogger("smarthome.knx")
 
 try:
@@ -443,7 +453,9 @@ def _normalize_knx(dev: dict) -> dict:
 
 
 def _build_subscriptions():
-    new_map: dict[str, tuple[str, str]] = {}
+    new_map: dict[str, list[tuple]] = {}
+
+    # 1) устройства
     for dev_id, dev in state["devices"].items():
         knx = _normalize_knx(dev)
         if not knx.get("enabled"):
@@ -452,110 +464,158 @@ def _build_subscriptions():
             rspec = _spec_read(spec)
             addr = (rspec.get("address") or "").strip()
             if addr:
-                new_map[addr] = (dev_id, field)
+                new_map.setdefault(addr, []).append(("device", dev_id, field))
+
+    # 2) реестр GA (импорт ETS + ручное добавление)
+    if knx_ga_store is not None:
+        try:
+            for addr, rec in knx_ga_store.all_gas().items():
+                addr = (addr or "").strip()
+                if not addr:
+                    continue
+                if addr not in new_map:
+                    new_map.setdefault(addr, []).append(("store",))
+        except Exception as e:
+            log.warning("[knx] _build_subscriptions: ga_store: %s", e)
+
     with _subs_lock:
         _subscriptions.clear()
         _subscriptions.update(new_map)
-    log.info("[knx] subscriptions: %s", list(new_map.keys()))
+
+    log.info(
+        "[knx] subscriptions: %d addresses (%d device-bound)",
+        len(new_map),
+        sum(1 for v in new_map.values()
+            if any(t[0] == "device" for t in v)),
+    )
 
 
 # ------------------------------------------------------------
 # Приём телеграмм
 # ------------------------------------------------------------
-from xknx.telegram.apci import GroupValueRead, GroupValueWrite, GroupValueResponse
 def _telegram_received(telegram):
     try:
         src = str(telegram.source_address)
         dst = str(telegram.destination_address)
         payload = telegram.payload
 
-#        log.debug("[knx] telegram: %s → %s : %r", src, dst, payload)
-
+        # запросы на чтение нас не интересуют
         if isinstance(payload, GroupValueRead):
-#            log.debug("[knx] skip GroupValueRead %s from %s", dst, src)
             return
+
+        # 1) разбудить всех ожидающих read_sync — ДО проверки подписок,
+        #    чтобы работало даже для GA, которых нет в реестре
+        parsed_value, parsed_dpt = _parse_payload_once(dst, payload)
+        if parsed_value is not None:
+            try:
+                _notify_ga_waiters(dst, parsed_value)
+            except Exception:
+                pass
 
         with _subs_lock:
-            target = _subscriptions.get(dst)
-        if not target:
-#            log.debug("[knx] no subscription for %s", dst)
+            targets = list(_subscriptions.get(dst) or [])
+        if not targets:
             return
 
-        dev_id, field = target
-        dev = state["devices"].get(dev_id)
-        if not dev:
-#            log.warning("[knx] device %s not found", dev_id)
+        # 2) обход всех целей подписки
+        for tgt in targets:
+            try:
+                _handle_target(tgt, dst, src, payload,
+                               parsed_value, parsed_dpt)
+            except Exception as e:
+                log.warning("[knx] target %r error: %s", tgt, e)
+    except Exception as e:
+        log.warning("[knx] telegram handler error: %s", e)
+
+
+def _handle_target(tgt, dst, src, payload, parsed_value, parsed_dpt):
+    kind = tgt[0]
+
+    # --- цель "store": только обновить реестр ---
+    if kind == "store":
+        if parsed_value is None:
             return
+        _ga_store_set_value(dst, parsed_value, source="bus")
+        if event_bus is not None:
+            try:
+                event_bus.publish(
+                    "knx",
+                    source="knx_client",
+                    knx={"source": src, "dest": dst, "value": parsed_value},
+                    # ← не будим полный refresh UI
+                    silent_ui=True,
+                )
+            except Exception:
+                pass
+        return
 
-        knx = _normalize_knx(dev)
-        spec = (knx.get("fields") or {}).get(field)
-        if not spec:
-#            log.warning("[knx] no field spec for %s.%s", dev_id, field)
-            return
+    # --- цель "device": обновить state устройства ---
+    if kind != "device":
+        return
 
-        rspec = _spec_read(spec)
-        dpt = rspec.get("dpt") or "DPT-1.001"
+    _, dev_id, field = tgt
+    dev = state["devices"].get(dev_id)
+    if not dev:
+        return
 
-        # ▼▼▼ ЛОГ ДО ПАРСИНГА ▼▼▼
-#        log.info("[knx] parse %s.%s payload=%r dpt=%s", dev_id, field, payload, dpt)
+    knx = _normalize_knx(dev)
+    spec = (knx.get("fields") or {}).get(field)
+    if not spec:
+        return
 
-        value = _ensure_primitive(_from_knx(payload, dpt))
+    rspec = _spec_read(spec)
+    dpt = rspec.get("dpt") or "DPT-1.001"
 
-        # ▼▼▼ ЛОГ ПОСЛЕ ПАРСИНГА ▼▼▼
-#        log.info("[knx] parsed value=%r type=%s", value, type(value).__name__)
+    value = _ensure_primitive(_from_knx(payload, dpt))
+    value = _apply_scale(value, rspec)
 
-        value = _apply_scale(value, rspec)
-
-#        log.info("[knx] scaled value=%r", value)
-
-        cur = dev["state"].get(field)
-        if isinstance(cur, bool):
-            value = bool(value)
-        elif isinstance(cur, int) and not isinstance(cur, bool):
-            try: value = int(value)
-            except Exception: pass
-        elif isinstance(cur, float):
-            try: value = float(value)
-            except Exception: pass
-
-        if dev["state"].get(field) == value:
-            log.info("[knx] %s.%s unchanged (%r == %r)", dev_id, field, dev["state"].get(field), value)
-            return
-
-        old_value = dev["state"].get(field)
-        dev["state"][field] = value
-        dev["updated"] = datetime.now().isoformat(timespec="seconds")
-        save_state()
-        # Обновляем реестр GA
+    # приведение к типу текущего значения в state
+    cur = dev["state"].get(field)
+    if isinstance(cur, bool):
+        value = bool(value)
+    elif isinstance(cur, int) and not isinstance(cur, bool):
         try:
-            import knx_ga_store
-            knx_ga_store.set_value(dst, value, source="bus")
-        except Exception as e:
-            log.warning("[knx] ga_store error: %s", e)
-        # Логирование значений
+            value = int(value)
+        except Exception:
+            pass
+    elif isinstance(cur, float):
         try:
-            log_cfg = dev.get("logging") or {}
-            if log_cfg.get("enabled"):
-                allowed = set(log_cfg.get("fields") or [])
-                if (not allowed) or (field in allowed):
-                    from logger_store import append as log_append
-                    log_append(dev_id, field, value)
+            value = float(value)
         except Exception:
             pass
 
-        # === event_bus: телеграмма KNX ===
+    # обновляем реестр GA даже если state не изменился
+    _ga_store_set_value(dst, value, source="bus")
+    # будим ожидающих (на случай, если dpt в реестре был не тот)
+    _notify_ga_waiters(dst, value)
+
+    if dev["state"].get(field) == value:
+        return
+
+    old_value = dev["state"].get(field)
+    dev["state"][field] = value
+    dev["updated"] = datetime.now().isoformat(timespec="seconds")
+    save_state()
+
+    # логирование значений
+    try:
+        log_cfg = dev.get("logging") or {}
+        if log_cfg.get("enabled"):
+            allowed = set(log_cfg.get("fields") or [])
+            if (not allowed) or (field in allowed):
+                from logger_store import append as log_append
+                log_append(dev_id, field, value)
+    except Exception:
+        pass
+
+    # event_bus
+    if event_bus is not None:
         try:
-            import event_bus
             event_bus.publish(
                 "knx",
                 source="knx_client",
-                knx={
-                    "source": src,
-                    "dest":   dst,
-                    "value":  value,
-                },
+                knx={"source": src, "dest": dst, "value": value},
             )
-            # изменение устройства
             event_bus.publish(
                 "device_changed",
                 source="knx_client",
@@ -566,8 +626,6 @@ def _telegram_received(telegram):
             )
         except Exception as e:
             log.warning("[knx] event_bus error: %s", e)
-    except Exception as e:
-        log.warning("[knx] telegram handler error: %s", e)
 
 # ------------------------------------------------------------
 # XKNX loop
@@ -802,30 +860,28 @@ def publish_fields(dev_id: str, changed: dict) -> bool:
                     payload=GroupValueWrite(pl),
                 )
                 await _xknx.telegrams.put(telegram)
-                log.info("[knx] >> %s.%s = %r -> %s (dpt=%s)", dev_id, f, vl, addr, dp)
+                log.info("[knx] >> %s.%s = %r -> %s (dpt=%s)",
+                         dev_id, f, vl, addr, dp)
 
                 # publish в event_bus
-                try:
-                    import event_bus
-                    event_bus.publish(
-                        "knx",
-                        source="knx_client_write",
-                        knx={
-                            "source": "server",
-                            "dest":   addr,
-                            "value":  vl,
-                        },
-                    )
-                except Exception:
-                    pass
+                if event_bus is not None:
+                    try:
+                        event_bus.publish(
+                            "knx",
+                            source="knx_client_write",
+                            knx={
+                                "source": "server",
+                                "dest":   addr,
+                                "value":  vl,
+                            },
+                        )
+                    except Exception:
+                        pass
 
             except Exception as e:
                 log.warning("[knx] write %s: %s", addr, e)
-                try:
-                    import knx_ga_store
-                    knx_ga_store.set_value(addr, vl, source="ui")
-                except Exception as e:
-                    log.warning("[knx] ga_store write error: %s", e)
+                _ga_store_set_value(addr, vl, source="ui")
+
         asyncio.run_coroutine_threadsafe(_do_write(), _loop)
         sent = True
 
@@ -888,3 +944,92 @@ def read_group_address(addr: str) -> bool:
 
     asyncio.run_coroutine_threadsafe(_do(), _loop)
     return True
+
+# ------------------------------------------------------------
+# Синхронное чтение GA с ожиданием ответа (для Lua/API)
+# ------------------------------------------------------------
+import queue as _queue
+
+_ga_waiters: dict[str, list] = {}   # addr -> [queue.Queue, ...]
+_ga_waiters_lock = threading.Lock()
+
+
+def _notify_ga_waiters(addr: str, value):
+    """Разбудить всех, кто ждёт ответа по этому GA."""
+    with _ga_waiters_lock:
+        waiters = _ga_waiters.pop(addr, [])
+    for q in waiters:
+        try:
+            q.put_nowait(value)
+        except Exception:
+            pass
+
+def _ga_store_get(addr: str) -> dict | None:
+    if knx_ga_store is None:
+        return None
+    try:
+        return knx_ga_store.get(addr)
+    except Exception:
+        return None
+
+
+def _ga_store_set_value(addr: str, value, source: str = "bus"):
+    if knx_ga_store is None:
+        return
+    try:
+        knx_ga_store.set_value(addr, value, source=source)
+    except Exception as e:
+        log.warning("[knx] ga_store error: %s", e)
+
+
+def _ga_store_upsert(addr: str):
+    if knx_ga_store is None:
+        return
+    try:
+        knx_ga_store.upsert(addr)
+    except Exception:
+        pass
+
+
+def _parse_payload_once(dst: str, payload):
+    """Разобрать payload с учётом dpt из реестра. Возвращает (value, dpt)."""
+    rec = _ga_store_get(dst) or {}
+    dpt = rec.get("dpt") or "DPT-1.001"
+    try:
+        raw = _ensure_primitive(_from_knx(payload, dpt))
+    except Exception:
+        raw = None
+    return raw, dpt
+
+def read_group_address_sync(addr: str, timeout: float = 2.0,
+                            dpt: str | None = None):
+    """
+    Отправить GroupValueRead и дождаться ответа от шины.
+    Возвращает python-значение или None при таймауте/ошибке.
+    """
+    if not (_xknx and _loop):
+        log.warning("[knx] read_sync %s: KNX не подключён", addr)
+        return None
+
+    q = _queue.Queue(maxsize=1)
+    with _ga_waiters_lock:
+        _ga_waiters.setdefault(addr, []).append(q)
+
+    try:
+        if not read_group_address(addr):
+            log.warning("[knx] read_sync %s: не удалось отправить запрос", addr)
+            return None
+        try:
+            value = q.get(timeout=timeout)
+            log.info("[knx] read_sync %s = %r", addr, value)
+            return value
+        except _queue.Empty:
+            log.warning("[knx] read_sync %s: таймаут %.1fс", addr, timeout)
+            return None
+    finally:
+        with _ga_waiters_lock:
+            lst = _ga_waiters.get(addr)
+            if lst and q in lst:
+                lst.remove(q)
+            if lst is not None and not lst:
+                _ga_waiters.pop(addr, None)
