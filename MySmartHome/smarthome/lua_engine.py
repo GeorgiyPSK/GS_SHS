@@ -3,6 +3,7 @@ import logging
 import json as _json
 import urllib.request
 import urllib.error
+import time
 
 
 def _api_http_get(url, timeout=10):
@@ -201,6 +202,13 @@ def _api_knx_ga_info(address):
 # ============================================================
 
 def _api_modbus_read_registers(cfg, spec):
+    import modbus_client
+    cfg  = _lua_to_py(cfg)
+    spec = _lua_to_py(spec)
+    if not isinstance(cfg, dict) or not isinstance(spec, dict):
+        log.warning("[lua] modbus.read_register: cfg/spec должны быть таблицами (got %s/%s)",
+                    type(cfg).__name__, type(spec).__name__)
+        return None
     """
     Прочитать регистр(ы) напрямую по спецификации.
 
@@ -235,6 +243,9 @@ def _api_modbus_read_registers(cfg, spec):
 
 
 def _api_modbus_write_register(cfg, spec, value):
+    import modbus_client
+    cfg  = _lua_to_py(cfg)
+    spec = _lua_to_py(spec)
     """
     Записать значение в регистр напрямую.
 
@@ -450,6 +461,14 @@ def _api_notify(title, body, level="info"):
 
 def _build_lua_env(rt):
     g = rt.globals()
+
+    # --- time ---
+    time_tbl = rt.table()
+    time_tbl["sleep"]     = _api_sleep       # sleep(ms)
+    time_tbl["sleep_sec"] = _api_sleep_sec   # sleep_sec(s)
+    g["time"] = time_tbl
+    g["sleep"]     = _api_sleep
+    g["sleep_sec"] = _api_sleep_sec
 
     # --- devices ---
     devices_tbl = rt.table()
@@ -670,3 +689,62 @@ def _api_knx_ga_read_sync(address, timeout=2.0):
     except Exception as e:
         log.warning("[lua] knx.ga_read_sync error: %s", e)
         return None
+
+def _api_sleep(ms):
+    """Спать ms миллисекунд. Блокирует текущий поток."""
+    try:
+        ms = float(ms)
+    except (TypeError, ValueError):
+        return
+    if ms <= 0:
+        return
+    # верхний предел — 5 минут, чтобы не вешать поток навсегда
+    time.sleep(min(ms / 1000.0, 300.0))
+
+
+def _api_sleep_sec(sec):
+    """Спать sec секунд (float)."""
+    try:
+        sec = float(sec)
+    except (TypeError, ValueError):
+        return
+    if sec <= 0:
+        return
+    time.sleep(min(sec, 300.0))
+
+def _lua_to_py(obj, _depth=0):
+    """Рекурсивно конвертирует lupa.LuaTable → dict/list, lupa.LuaFunction → None."""
+    if _depth > 20:
+        return None
+    # lupa-таблица?
+    try:
+        import lupa as _lupa
+        LuaTable = _lupa.lua_type(obj)  # строка 'table' | 'function' | None
+    except Exception:
+        LuaTable = None
+
+    if LuaTable == 'table':
+        # проверяем, массив это или словарь
+        # у lupa таблицы есть .items(), но проще пройтись по парам
+        keys = []
+        vals = {}
+        for k, v in obj.items():
+            keys.append(k)
+            vals[k] = _lua_to_py(v, _depth + 1)
+        # если все ключи — целые 1..n подряд → list
+        if keys and all(isinstance(k, int) for k in keys):
+            keys_sorted = sorted(keys)
+            if keys_sorted == list(range(1, len(keys_sorted) + 1)):
+                return [vals[k] for k in keys_sorted]
+        return vals
+
+    if LuaTable == 'function':
+        return None
+
+    if isinstance(obj, (list, tuple)):
+        return [_lua_to_py(x, _depth + 1) for x in obj]
+
+    if isinstance(obj, dict):
+        return {k: _lua_to_py(v, _depth + 1) for k, v in obj.items()}
+
+    return obj
