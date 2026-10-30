@@ -49,7 +49,7 @@
       "1e955dfe"
     ],
     "state": {
-      "temp": 22.38,
+      "temp": 21.66,
       "humidity": 45.0
     },
     "x": 50.0,
@@ -74,7 +74,7 @@
       "sub_topic": "",
       "retain": true
     },
-    "updated": "2026-10-15T18:12:25",
+    "updated": "2026-10-30T15:30:09",
     "knx": {
       "enabled": true,
       "address": "6/0/0",
@@ -204,7 +204,7 @@
     ],
     "state": {
       "temp": 24.0,
-      "humidity": 1.0
+      "humidity": 58.96
     },
     "x": 50.0,
     "y": 50.0,
@@ -228,7 +228,7 @@
       "sub_topic": "",
       "retain": true
     },
-    "updated": "2026-10-28T18:48:05",
+    "updated": "2026-10-30T15:24:00",
     "knx": {
       "fields": {
         "humidity": {
@@ -741,7 +741,7 @@
     ],
     "state": {
       "current": 22.0,
-      "target": 22.0,
+      "target": 17.0,
       "mode": "heat"
     },
     "x": 50.0,
@@ -766,7 +766,7 @@
       "sub_topic": "",
       "retain": true
     },
-    "updated": "2026-10-05T15:05:34",
+    "updated": "2026-10-30T14:45:29",
     "knx": {
       "fields": {}
     }
@@ -805,7 +805,7 @@
       "sub_topic": "",
       "retain": true
     },
-    "updated": "2026-10-16T14:13:53",
+    "updated": "2026-10-30T14:45:25",
     "icon_rules": [
       {
         "field": "on",
@@ -1146,7 +1146,7 @@
     "extra_rooms": [],
     "state": {
       "on": true,
-      "brightness": 55
+      "brightness": 100
     },
     "x": 50.0,
     "y": 50.0,
@@ -1175,7 +1175,7 @@
     "z2m_model": "LED1545G12",
     "z2m_vendor": "IKEA",
     "z2m_reason": "model содержит 'bulb'",
-    "updated": "2026-10-16T14:14:17",
+    "updated": "2026-10-30T13:32:18",
     "id": "e296e389",
     "z2m_seen": "2026-10-05T17:54:26",
     "knx": {
@@ -1247,7 +1247,7 @@
     "room_id": "5784416d",
     "extra_rooms": [],
     "state": {
-      "current": 22.4,
+      "current": 23.4,
       "target": 23.0,
       "mode": "cool",
       "state": 26.3
@@ -1271,7 +1271,7 @@
       "retain": true
     },
     "icon_rules": [],
-    "updated": "2026-10-28T10:34:33",
+    "updated": "2026-10-30T15:30:01",
     "modbus": {
       "enabled": true,
       "conn": {
@@ -1410,7 +1410,7 @@
     "room_id": "fc9d33f0",
     "extra_rooms": [],
     "state": {
-      "state": 22.8
+      "state": 50.08
     },
     "x": 50.0,
     "y": 50.0,
@@ -1461,7 +1461,7 @@
       },
       "fields": {}
     },
-    "updated": "2026-10-28T19:58:31"
+    "updated": "2026-10-30T15:28:07"
   },
   "9d930e5d": {
     "id": "9d930e5d",
@@ -1471,7 +1471,7 @@
     "room_id": "fc9d33f0",
     "extra_rooms": [],
     "state": {
-      "state": 25.0
+      "state": 53.32
     },
     "x": 50.0,
     "y": 50.0,
@@ -1522,7 +1522,7 @@
       },
       "fields": {}
     },
-    "updated": "2026-10-28T20:03:44"
+    "updated": "2026-10-30T15:30:04"
   },
   "50b454db": {
     "id": "50b454db",
@@ -1532,7 +1532,7 @@
     "room_id": "fc9d33f0",
     "extra_rooms": [],
     "state": {
-      "state": 24.0
+      "state": 53.48
     },
     "x": 50.0,
     "y": 50.0,
@@ -1583,7 +1583,7 @@
       },
       "fields": {}
     },
-    "updated": "2026-10-28T20:09:22"
+    "updated": "2026-10-30T15:29:53"
   },
   "363aeba2": {
     "id": "363aeba2",
@@ -1593,7 +1593,7 @@
     "room_id": "fc9d33f0",
     "extra_rooms": [],
     "state": {
-      "state": 25.7
+      "state": 59.4
     },
     "x": 50.0,
     "y": 50.0,
@@ -1644,7 +1644,7 @@
       },
       "fields": {}
     },
-    "updated": "2026-10-28T19:52:30"
+    "updated": "2026-10-30T15:28:39"
   },
   "cd525826": {
     "id": "cd525826",
@@ -1654,7 +1654,7 @@
     "room_id": "fc9d33f0",
     "extra_rooms": [],
     "state": {
-      "state": 24.8
+      "state": 53.8
     },
     "x": 50.0,
     "y": 50.0,
@@ -1705,7 +1705,7 @@
       },
       "fields": {}
     },
-    "updated": "2026-10-28T20:04:10"
+    "updated": "2026-10-30T15:28:45"
   },
   "c5d401c6": {
     "id": "c5d401c6",
@@ -1715,7 +1715,7 @@
     "room_id": "fc9d33f0",
     "extra_rooms": [],
     "state": {
-      "state": 23.1
+      "state": 57.68
     },
     "x": 50.0,
     "y": 50.0,
@@ -1766,7 +1766,7 @@
       },
       "fields": {}
     },
-    "updated": "2026-10-28T19:47:09"
+    "updated": "2026-10-30T15:19:53"
   },
   "8781732b": {
     "id": "8781732b",
@@ -1776,7 +1776,7 @@
     "room_id": "fc9d33f0",
     "extra_rooms": [],
     "state": {
-      "state": 22.8
+      "state": 45.72
     },
     "x": 50.0,
     "y": 50.0,
@@ -1827,7 +1827,7 @@
       },
       "fields": {}
     },
-    "updated": "2026-10-28T20:04:28"
+    "updated": "2026-10-30T15:29:50"
   },
   "1681d4d8": {
     "id": "1681d4d8",
@@ -1837,7 +1837,7 @@
     "room_id": "fc9d33f0",
     "extra_rooms": [],
     "state": {
-      "state": 23.3
+      "state": 53.32
     },
     "x": 50.0,
     "y": 50.0,
@@ -1888,7 +1888,7 @@
       },
       "fields": {}
     },
-    "updated": "2026-10-28T20:01:06"
+    "updated": "2026-10-30T15:27:17"
   },
   "18dcd524": {
     "id": "18dcd524",
@@ -1898,7 +1898,7 @@
     "room_id": "fc9d33f0",
     "extra_rooms": [],
     "state": {
-      "state": 22.0
+      "state": 56.76
     },
     "x": 50.0,
     "y": 50.0,
@@ -1949,7 +1949,7 @@
       },
       "fields": {}
     },
-    "updated": "2026-10-28T19:31:00"
+    "updated": "2026-10-30T15:29:58"
   },
   "87093748": {
     "id": "87093748",
@@ -1959,7 +1959,7 @@
     "room_id": "fc9d33f0",
     "extra_rooms": [],
     "state": {
-      "state": 23.9
+      "state": 53.6
     },
     "x": 50.0,
     "y": 50.0,
@@ -2010,7 +2010,7 @@
       },
       "fields": {}
     },
-    "updated": "2026-10-28T19:51:21"
+    "updated": "2026-10-30T15:29:52"
   },
   "2a89df60": {
     "id": "2a89df60",
@@ -2020,7 +2020,7 @@
     "room_id": "fc9d33f0",
     "extra_rooms": [],
     "state": {
-      "state": 23.2
+      "state": 53.56
     },
     "x": 50.0,
     "y": 50.0,
@@ -2071,7 +2071,7 @@
       },
       "fields": {}
     },
-    "updated": "2026-10-28T19:56:22"
+    "updated": "2026-10-30T15:28:27"
   },
   "5e9876d6": {
     "id": "5e9876d6",
@@ -2125,6 +2125,6 @@
       },
       "fields": {}
     },
-    "updated": "2026-10-27T16:50:16"
+    "updated": "2026-10-30T13:27:43"
   }
 }
