@@ -914,3 +914,58 @@ async function knxGaImportLinksOnly(input) {
     input.value = '';
   }
 }
+
+function knxGaUpdateRow(addr) {
+  const wrap = document.getElementById('knx-ga-table-wrap');
+  if (!wrap) return;
+
+  const tr = wrap.querySelector(`tr[data-ga="${CSS.escape(addr)}"]`);
+  if (!tr) return;
+
+  // 1) если пользователь редактирует эту строку — не трогаем DOM
+  const ae = document.activeElement;
+  if (ae && tr.contains(ae) &&
+      (ae.tagName === 'INPUT' || ae.tagName === 'SELECT' || ae.tagName === 'TEXTAREA')) {
+    return;
+  }
+
+  // 2) взять актуальные данные из кэша
+  const ga = (Array.isArray(knxGaCache) ? knxGaCache : [])
+    .find(x => x.address === addr);
+  if (!ga) return;
+
+  // 3) обновить ячейку «Текущее» (4-я колонка)
+  //    Формат совпадает с renderKnxGaTable: formatGaValue(ga) + updated
+  const cells = tr.children;
+  if (cells && cells.length >= 4) {
+    const valCell = cells[3];
+    const isBool = (ga.dpt || '').startsWith('DPT-1.');
+    // если тип bool, а у нас select-инпут — синхронизируем и его
+    valCell.innerHTML = `
+      ${formatGaValue(ga)}
+      ${ga.updated ? `<div style="font-size:.7rem;opacity:.55;">${esc(ga.updated)}</div>` : ''}
+    `;
+  }
+
+  // 4) синхронизировать input/select «Записать» (5-я колонка)
+  const inp = tr.querySelector(`[data-ga-input="${CSS.escape(addr)}"]`);
+  if (inp) {
+    const isBool = (ga.dpt || '').startsWith('DPT-1.');
+    const ae2 = document.activeElement;
+    if (ae2 !== inp) {
+      if (isBool) {
+        if (ga.value === true)       inp.value = 'true';
+        else if (ga.value === false) inp.value = 'false';
+        else                          inp.value = '';
+      } else {
+        inp.value = (ga.value === null || ga.value === undefined) ? '' : ga.value;
+      }
+    }
+  }
+
+  // 5) короткая подсветка «мигнуло»
+  tr.classList.remove('kga-flash');
+  void tr.offsetWidth;
+  tr.classList.add('kga-flash');
+  setTimeout(() => tr.classList.remove('kga-flash'), 700);
+}
