@@ -161,29 +161,92 @@ function switchView(v) {
 }
 
 /* --- SSE --- */
+/* --- SSE --- */
 function startSSE() {
   if (_sse) return;
+
+  let _ssePending = false;
+  let _sseTimer = null;
+
+  const scheduleRefresh = () => {
+    if (_ssePending) return;
+    _ssePending = true;
+    clearTimeout(_sseTimer);
+    _sseTimer = setTimeout(() => {
+      _ssePending = false;
+
+      // не рендерим, если пользователь что-то делает
+      if (window._mouseDown) { scheduleRefresh(); return; }
+      if (document.querySelector(':hover button, :hover a, :hover .btn')) {
+        scheduleRefresh();
+        return;
+      }
+      // не рендерим, если открыта модалка или пользователь редактирует GA/Lua
+      if (document.querySelector('.modal-overlay.open')) return;
+      if (currentView === 'knx-ga' && _knxGaEditing()) return;
+      if (currentView === 'lua' && _luaEditorDirty) return;
+
+      refresh();
+    }, 400);
+  };
+
   try {
     _sse = new EventSource('/api/events/stream');
     _sse.onmessage = (e) => {
       const raw = e.data;
       if (!raw) return;
+
+      // голые строки от старых бэкендов
       if (raw === 'changed' || raw === 'init') {
-        refresh();
+        scheduleRefresh();
         return;
       }
-      try {
-        const msg = JSON.parse(raw);
-        if (!msg) return;
-        if (msg.type === 'notify') {
-          showBrowserNotification(msg.data || {});
-        } else if (msg.type === 'lua_log') {
-          const d = msg.data || {};
-          if (d.script_id) addLuaLog(d.script_id, d.level || 'info', d.text || '');
-        } else if (msg.type === 'server_log') {
-          addServerLog(msg.data);
+
+      let msg = null;
+      try { msg = JSON.parse(raw); } catch (err) { return; }
+      if (!msg || !msg.type) return;
+
+      if (msg.type === 'changed' || msg.type === 'init') {
+        scheduleRefresh();
+        return;
+      }
+
+      if (msg.type === 'knx_ga_changed') {
+        const d = msg.data || {};
+        if (!d.address) return;
+
+        // 1) точечно обновить строку в таблице GA (если открыта)
+        if (currentView === 'knx-ga' && typeof knxGaUpdateRow === 'function') {
+          knxGaUpdateRow(d.address);
         }
-      } catch (err) { /* ignore */ }
+
+        // 2) если открыта карточка устройства, привязанного к GA — обновить поле
+        if (document.querySelector('#modal-overlay.open') && _modalDeviceId &&
+            typeof updateLiveFieldForGa === 'function') {
+          updateLiveFieldForGa(d.address, d.value);
+        }
+        return;
+      }
+
+      if (msg.type === 'notify') {
+        showBrowserNotification(msg.data || {});
+        return;
+      }
+
+      if (msg.type === 'lua_log') {
+        const d = msg.data || {};
+        if (d.script_id) addLuaLog(d.script_id, d.level || 'info', d.text || '');
+        return;
+      }
+
+      if (msg.type === 'server_log') {
+        addServerLog(msg.data);
+        return;
+      }
+    };
+
+    _sse.onerror = () => {
+      // EventSource сам переподключится; просто не шумим в консоль
     };
   } catch (e) { /* ignore */ }
 }
