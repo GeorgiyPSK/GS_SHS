@@ -126,6 +126,142 @@ def _api_modbus_write(dev_id, field, value):
         log.warning("[lua] modbus.write error: %s", e)
         return False
 
+# ============================================================
+# KNX: работа напрямую с групповыми адресами
+# ============================================================
+
+def _api_knx_ga_write(address, value, dpt="DPT-1.001"):
+    """
+    Записать значение в групповой адрес KNX.
+    Аналог knx_client.write_group_address.
+    """
+    try:
+        import knx_client
+        if not knx_client.is_connected():
+            log.warning("[lua] knx.ga_write: KNX не подключён")
+            return False
+        return knx_client.write_group_address(str(address), value, dpt=dpt or "DPT-1.001")
+    except Exception as e:
+        log.warning("[lua] knx.ga_write error: %s", e)
+        return False
+
+
+def _api_knx_ga_read(address):
+    """
+    Отправить GroupValueRead на групповой адрес.
+    Ответ придёт асинхронно и обновит knx_ga_store — прочитать
+    актуальное значение можно через knx.ga_get(address).
+    Возвращает True, если запрос отправлен.
+    """
+    try:
+        import knx_client
+        if not knx_client.is_connected():
+            log.warning("[lua] knx.ga_read: KNX не подключён")
+            return False
+        return knx_client.read_group_address(str(address))
+    except Exception as e:
+        log.warning("[lua] knx.ga_read error: %s", e)
+        return False
+
+
+def _api_knx_ga_get(address):
+    """
+    Получить последнее известное значение GA из knx_ga_store.
+    Возвращает значение или nil.
+    """
+    try:
+        import knx_ga_store
+        rec = knx_ga_store.get(str(address))
+        if not rec:
+            return None
+        return rec.get("value")
+    except Exception as e:
+        log.warning("[lua] knx.ga_get error: %s", e)
+        return None
+
+
+def _api_knx_ga_info(address):
+    """
+    Полная запись GA из реестра (name, dpt, value, updated, ...)
+    или nil.
+    """
+    try:
+        import knx_ga_store
+        rec = knx_ga_store.get(str(address))
+        if not rec:
+            return None
+        return {k: v for k, v in rec.items()}
+    except Exception as e:
+        log.warning("[lua] knx.ga_info error: %s", e)
+        return None
+
+
+# ============================================================
+# Modbus: работа напрямую с регистрами
+# ============================================================
+
+def _api_modbus_read_registers(cfg, spec):
+    """
+    Прочитать регистр(ы) напрямую по спецификации.
+
+    cfg  = { transport="tcp"|"rtu", host, tcp_port, port, baudrate,
+             parity, stopbits, bytesize, unit, timeout }
+    spec = { kind="holding"|"input"|"coil"|"discrete",
+             address=0, count=1, type="uint16"|"int16"|"uint32"|
+                                    "int32"|"float32"|"bool",
+             mul/div/add/sub/round/clamp/formula — опционально }
+
+    Возвращает python-значение (уже с масштабированием) или None.
+    """
+    try:
+        import modbus_client
+    except Exception as e:
+        log.warning("[lua] modbus.read_register: import error: %s", e)
+        return None
+
+    if not isinstance(cfg, dict) or not isinstance(spec, dict):
+        log.warning("[lua] modbus.read_register: cfg/spec должны быть таблицами")
+        return None
+
+    try:
+        cli = modbus_client._get_client(cfg)
+        unit = int(cfg.get("unit", 1))
+        rspec = modbus_client._spec_read(spec)
+        raw = modbus_client._read_one(cli, unit, rspec)
+        return modbus_client._apply_scale(raw, rspec)
+    except Exception as e:
+        log.warning("[lua] modbus.read_register error: %s", e)
+        return None
+
+
+def _api_modbus_write_register(cfg, spec, value):
+    """
+    Записать значение в регистр напрямую.
+
+    cfg  — как в read_registers
+    spec — { kind="holding"|"coil", address, type,
+             mul/div/add/sub/clamp — опционально }
+    """
+    try:
+        import modbus_client
+    except Exception as e:
+        log.warning("[lua] modbus.write_register: import error: %s", e)
+        return False
+
+    if not isinstance(cfg, dict) or not isinstance(spec, dict):
+        log.warning("[lua] modbus.write_register: cfg/spec должны быть таблицами")
+        return False
+
+    try:
+        cli = modbus_client._get_client(cfg)
+        unit = int(cfg.get("unit", 1))
+        wspec = modbus_client._spec_write(spec)
+        raw = modbus_client._reverse_scale(value, wspec)
+        rr = modbus_client._write_one(cli, unit, wspec, raw)
+        return rr is not None and not rr.isError()
+    except Exception as e:
+        log.warning("[lua] modbus.write_register error: %s", e)
+        return False
 
 def _api_mqtt_publish(topic, payload, retain=False, qos=0):
     try:
@@ -324,14 +460,21 @@ def _build_lua_env(rt):
 
     # --- knx ---
     knx_tbl = rt.table()
-    knx_tbl["read"] = _api_knx_read
-    knx_tbl["write"] = _api_knx_write
+    knx_tbl["read"]     = _api_knx_read           # по устройству/полю
+    knx_tbl["write"]    = _api_knx_write
+    knx_tbl["ga_write"] = _api_knx_ga_write       # прямой GA-write
+    knx_tbl["ga_read"]  = _api_knx_ga_read        # GroupValueRead
+    knx_tbl["ga_get"]   = _api_knx_ga_get         # значение из реестра
+    knx_tbl["ga_info"]  = _api_knx_ga_info        # вся запись GA
+    knx_tbl["ga_read_sync"] = _api_knx_ga_read_sync
     g["knx"] = knx_tbl
 
     # --- modbus ---
     mb_tbl = rt.table()
-    mb_tbl["read"] = _api_modbus_read
-    mb_tbl["write"] = _api_modbus_write
+    mb_tbl["read"]           = _api_modbus_read           # по устройству
+    mb_tbl["write"]          = _api_modbus_write
+    mb_tbl["read_registers"] = _api_modbus_read_registers # напрямую
+    mb_tbl["write_register"] = _api_modbus_write_register
     g["modbus"] = mb_tbl
 
     # --- mqtt ---
@@ -508,3 +651,22 @@ def init_event_bus():
     """Подписать lua_engine на шину. Вызвать один раз при старте."""
     event_bus.subscribe(_on_bus_event)
     log.info("[lua] подписан на event_bus")
+
+def _api_knx_ga_read_sync(address, timeout=2.0):
+    """
+    Синхронно прочитать значение GA с шины KNX.
+    Возвращает python-значение или nil при таймауте.
+    """
+    try:
+        import knx_client
+        if not knx_client.is_connected():
+            log.warning("[lua] knx.ga_read_sync: KNX не подключён")
+            return None
+        try:
+            to = float(timeout) if timeout is not None else 2.0
+        except Exception:
+            to = 2.0
+        return knx_client.read_group_address_sync(str(address), timeout=to)
+    except Exception as e:
+        log.warning("[lua] knx.ga_read_sync error: %s", e)
+        return None
