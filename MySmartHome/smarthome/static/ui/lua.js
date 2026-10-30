@@ -506,3 +506,95 @@ async function runLuaScript() {
 function clearLuaOutput() {
   document.getElementById('lua-output').textContent = '';
 }
+
+/* --- Вставка сниппета из справки в редактор по клику --- */
+function luaInsertSnippet(text) {
+  const ta = document.querySelector('#lua-editor textarea.lua-input');
+  if (!ta) {
+    alert('Сначала выберите скрипт');
+    return;
+  }
+
+  const start = ta.selectionStart ?? ta.value.length;
+  const end   = ta.selectionEnd   ?? ta.value.length;
+  const before = ta.value.slice(0, start);
+  const after  = ta.value.slice(end);
+
+  // отступ: если курсор в строке с ведущими пробелами — сохраняем их
+  const lineStart = before.lastIndexOf('\n') + 1;
+  const indent = (before.slice(lineStart).match(/^[ \t]*/) || [''])[0];
+
+  // добавляем перенос, если курсор не в начале строки
+  const needNlBefore = before.length && !before.endsWith('\n');
+  const insert = (needNlBefore ? '\n' : '') + indent + text + '\n';
+
+  ta.value = before + insert + after;
+  const pos = (before + insert).length;
+  ta.setSelectionRange(pos, pos);
+  ta.focus();
+
+  // перерисовать подсветку и gutter
+  onLuaCodeInput(ta);
+
+  // отметить, что есть несохранённые изменения
+  _luaEditorDirty = true;
+  const row = ta.closest('.row');
+  if (row) {
+    // подсветить кнопку «Сохранить»
+    const btn = row.querySelector('button.green');
+    if (btn) btn.classList.add('dirty');
+  }
+}
+
+/* Делегирование клика по <pre> в справке */
+document.addEventListener('click', (e) => {
+  const pre = e.target.closest('.lua-help pre');
+  if (!pre) return;
+  // не мешаем выделению текста — срабатываем только если нет выделения
+  const sel = window.getSelection();
+  if (sel && sel.toString().trim().length > 0) return;
+
+  const text = pre.textContent.replace(/\u00a0/g, ' ');
+  luaInsertSnippet(text);
+
+  pre.classList.add('kh-copied');
+  setTimeout(() => pre.classList.remove('kh-copied'), 400);
+}, true);
+
+/* --- Вставка сниппета из справки в редактор --- */
+function luaInsertSnippet(text) {
+  const ta = document.querySelector('#lua-editor textarea.lua-input');
+  if (!ta) {
+    alert('Сначала выберите скрипт');
+    return;
+  }
+
+  const start = (ta.selectionStart != null) ? ta.selectionStart : ta.value.length;
+  const end   = (ta.selectionEnd   != null) ? ta.selectionEnd   : ta.value.length;
+
+  const before = ta.value.slice(0, start);
+  const after  = ta.value.slice(end);
+
+  // отступ текущей строки
+  const lineStart = before.lastIndexOf('\n') + 1;
+  const indent = (before.slice(lineStart).match(/^[ \t]*/) || [''])[0];
+
+  const needNlBefore = before.length && !before.endsWith('\n');
+  const insert = (needNlBefore ? '\n' : '') + indent + text + '\n';
+
+  ta.value = before + insert + after;
+  const pos = (before + insert).length;
+  ta.setSelectionRange(pos, pos);
+  ta.focus();
+
+  // перерисовать подсветку + gutter
+  if (typeof onLuaCodeInput === 'function') onLuaCodeInput(ta);
+
+  _luaEditorDirty = true;
+  const row = ta.closest('.row');
+  if (row) {
+    const btn = row.querySelector('button.green');
+    if (btn) btn.classList.add('dirty');
+  }
+}
+
