@@ -470,311 +470,326 @@
     <div class="lua-layout">
 
       <!-- Левая колонка: шпаргалка -->
-      <aside class="lua-help">
-        <h3>🐍 Lua: шпаргалка</h3>
-
-        <details open>
-          <summary>devices</summary>
-          <pre>local t = devices.get('dev_id', 'temp')
-local s = devices.get('dev_id')
-devices.set('dev_id', 'temp', 22.5)
-
-for id, name in pairs(devices.list()) do
-  log(id .. ' = ' .. name)
-end</pre>
-        </details>
-
-       
-          <details open>
-            <summary>knx</summary>
-            <pre>-- По устройству/полю 
-  knx.read('dev_id', 'humidity')
-  knx.write('dev_id', 'humidity', 24.0)
-  
-  -- Напрямую по групповому адресу
-  knx.ga_write('1/2/3', true)                 -- bool
-  knx.ga_write('1/2/4', 21.5, 'DPT-9.001')    -- температура
-  knx.ga_write('1/2/5', 200,  'DPT-5.001')    -- 0..255
-  
-  -- Запросить актуальное значение с шины
-  knx.ga_read('1/2/3')
-  
-  -- Прочитать последнее известное (из реестра)
-  local v = knx.ga_get('1/2/4')
-  if v ~= nil then log('temp: '..v) end
-  
-  -- Полная запись из реестра
-  local rec = knx.ga_info('1/2/4')
-  if rec then
-    log(rec.name .. ' = ' .. tostring(rec.value)
-        .. ' (' .. tostring(rec.dpt) .. ')')
-  end</pre>
-          </details>
-
-        <details>
-          <details open>
-            <summary>modbus</summary>
-            <pre>-- По устройству/полю 
-  local v = modbus.read('dev_id', 'temp')
-  modbus.write('dev_id', 'temp', 22)
-  
-  -- Напрямую по регистру
-  local cfg = {
-    transport = 'tcp',     -- 'tcp' | 'rtu'
-    host      = '192.168.1.50',
-    tcp_port  = 502,
-    unit      = 1,
-    timeout   = 1.0,
-  }
-  -- RTU-пример:
-  -- local cfg = {
-  --   transport = 'rtu', port = 'COM3', baudrate = 9600,
-  --   parity = 'N', stopbits = 1, bytesize = 8,
-  --   unit = 1, timeout = 1.0,
-  -- }
-  
-  -- uint16 holding-регистр 100
-  local raw = modbus.read_registers(cfg, {
-    kind = 'holding', address = 100, count = 1,
-    type = 'uint16',
-  })
-  
-  -- float32 input-регистр 200 с масштабированием
-  local temp = modbus.read_registers(cfg, {
-    kind = 'input', address = 200, count = 2,
-    type = 'float32', round = 1,
-  })
-  
-  -- Запись: holding 100 = 42
-  modbus.write_register(cfg, {
-    kind = 'holding', address = 100, type = 'uint16',
-  }, 42)
-  
-  -- Запись coil 10 = true
-  modbus.write_register(cfg, {
-    kind = 'coil', address = 10, type = 'bool',
-  }, true)</pre>
-          </details>
-
-        <details>
-          <summary>mqtt</summary>
-          <pre>mqtt.publish('smarthome/alert',
-             '{"msg":"hello"}', true, 1)</pre>
-        </details>
-
-        <details>
-          <summary>log / notify</summary>
-          <pre>log('сообщение в лог')
-notify('Заголовок', 'Текст', 'info')</pre>
-        </details>
-
-        <details>
-          <summary>ctx</summary>
-          <pre>-- ctx.trigger = 'manual' |
---   'timer' | 'scenario' | 'event'
-if ctx.trigger == 'timer' then
-  log('запущен по таймеру')
-end</pre>
-        </details>
-
-        <details>
-          <summary>Пример: термостат</summary>
-          <pre>local t = devices.get('climate', 'temp')
-if t and t &gt; 25 then
-  devices.set('climate', 'target', 22)
-  knx.write('climate', 'target', 22)
-  notify('GS Smart',
-         'Жарко: ' .. t .. '°C', 'warning')
-end</pre>
-        </details>
-
-        <details>
-          <summary>🌐 HTTP-запросы</summary>
-          <pre>-- Простой GET
-local body, status = http.get("http://example.com/api")
-if status == 200 then
-    log("Ответ: " .. body)
-else
-    log("Ошибка: " .. tostring(status))
-end
-
--- Проверка доступности хоста (TCP)
-local ok, err = http.check("141.95.99.79", 80)
-if not ok then
-    log("Хост недоступен: " .. tostring(err))
-end</pre>
-        </details>
-        <details>
-          <summary>✈️ Telegram</summary>
-          <pre>-- Отправка простого сообщения
--- (chat_id и token из настроек, если не указаны)
-telegram.send(nil, "Привет из GS Smart!")
-
--- С указанием chat_id явно
-telegram.send("123456789", "Температура: 22°C")
-
--- Markdown / HTML разметка
-telegram.send_markdown(nil, "*Жирный* _курсив_ `код`")
-telegram.send_html(nil, "&lt;b&gt;Жирный&lt;/b&gt; &lt;i&gt;курсив&lt;/i&gt;")
-
--- Фото по URL (локальные файлы не поддерживаются)
-telegram.photo(nil, "https://example.com/photo.jpg", "Подпись")
-
--- Проверка токена и получение info о боте
-local me = telegram.me()
-if me.ok then
-    log("Бот: " .. me.result.username)
-else
-    log("Ошибка: " .. tostring(me.error))
-end
-
--- Пример: уведомление при протечке
-local leak = devices.get("leak1", "alarm")
-if leak then
-    local r = telegram.send(nil,
-        "🚨 ПРОТЕЧКА! " .. devices.get("leak1").."")
-    if not r.ok then
-        log("Telegram error: " .. tostring(r.error))
-    end
-end</pre>
-        </details>
-        <details>
-          <summary>🧩 JSON</summary>
-          <pre>-- Разбор JSON-строки
-local data = json.decode('{"temp": 22.5, "hum": 60}')
-log("Температура: " .. data.temp)
-log("Влажность: " .. data.hum)
-
--- Сериализация Lua-таблицы в JSON
-local payload = json.encode({ on = true, level = 5 })
-log(payload)   -- {"on":true,"level":5}</pre>
-        </details>
-
-        <details>
-          <summary>🌤 Погода (OpenWeather)</summary>
-          <pre>local url = "http://api.openweathermap.org/data/2.5/weather" ..
-            "?id=584243&units=metric&appid=ВАШ_КЛЮЧ"
-
-local body, status = http.get(url)
-if status ~= 200 then
-    log("Статус: " .. tostring(status))
-    return
-end
-
-local data = json.decode(body)
-if data and data.main then
-    log("Влажность: " .. data.main.humidity .. "%")
-    devices.set("Улица влажность", "humidity", data.main.humidity)
-end</pre>
-        </details>
-
-        <details>
-          <summary>⚡ Контекст запуска (ctx)</summary>
-          <pre>-- ctx заполняется при запуске по триггеру:
---   ctx.trigger   — "knx" | "mqtt" | "device_changed" | "timer"
---   ctx.script_id — id текущего скрипта
---   ctx.event     — полное событие
---   ctx.device_id, ctx.field, ctx.value — для device_changed
---   ctx.knx, ctx.mqtt, ctx.timer_id
-
-log("Триггер: " .. tostring(ctx.trigger))
-
-if ctx.trigger == "knx" and ctx.knx then
-    log("KNX dest: " .. ctx.knx.dest)
-end
-
-if ctx.trigger == "device_changed" then
-    log("Изменилось: " .. ctx.device_id .. "." .. ctx.field ..
-        " = " .. tostring(ctx.value))
-end</pre>
-        </details>
-
-        <details>
-          <summary>🔔 Уведомления</summary>
-          <pre>-- Показать уведомление в браузере (SSE → Notification API)
-notify("Температура", "На улице " .. temp .. " °C", "info")
-
--- level: "info" | "warning" | "error"
-notify("Протечка!", "Датчик в ванной", "error")</pre>
-        </details>
-
-        <details>
-          <summary>🔁 Циклы, таблицы</summary>
-          <pre>-- Перебор всех устройств
-for id, name in pairs(devices.list()) do
-    log(id .. " → " .. name)
-end
-
--- Список всех полей устройства
-local st = devices.get("sensor1")
-for k, v in pairs(st) do
-    log(k .. " = " .. tostring(v))
-end
-
--- Условная логика
-local t = devices.get("sensor1", "temp")
-if t and t > 25 then
-    devices.set("fan1", "on", true)
-end</pre>
-        </details>
-
-        
-          <details>
-            <summary>🔌 KNX, MQTT, Modbus (пример)</summary>
-            <pre>-- KNX: устройство и прямой GA
-  local t = devices.get("climate", "target")
-  knx.ga_write("1/2/10", t, "DPT-9.001")
-  
-  -- KNX: запрос значения и его получение
-  knx.ga_read("1/2/10")
-  -- (значение придёт асинхронно, через ~100 мс)
-  -- ... чуть позже в другом скрипте/триггере:
-  local cur = knx.ga_get("1/2/10")
-  
-  -- Modbus напрямую
-  local cfg = { transport="tcp", host="10.0.0.5", tcp_port=502, unit=1 }
-  local p = modbus.read_registers(cfg, {
-    kind="holding", address=0, count=2, type="float32"
-  })
-  
-  -- MQTT
-  mqtt.publish("home/alerts", '{"msg":"hello"}', false, 0)</pre>
-          </details>
-
-        <details>
-          <summary>⚠️ Обработка ошибок</summary>
-          <pre>-- pcall защищает от падения скрипта
-local ok, res = pcall(function()
-    return devices.get("nonexistent", "field")
-end)
-if not ok then
-    log("Ошибка: " .. tostring(res))
-end
-
--- Всегда проверяйте, что вернул devices.get
-local t = devices.get("sensor1", "temp")
-if t == nil then
-    log("Устройство или поле не найдено")
-    return
-end</pre>
-        </details>
-
-        <details>
-          <summary>💡 Сниппеты</summary>
-          <pre>-- Форматирование числа
-log(string.format("Температура: %.1f °C", temp))
-
--- Округление
-local r = math.floor(temp + 0.5)
-
--- Преобразование в число
-local n = tonumber(devices.get("sensor1", "raw"))
-
--- Случайное число
-math.randomseed(os.time())
-local rnd = math.random(1, 100)</pre>
-        </details>
-      </aside>
+            <!-- Левая колонка: шпаргалка -->
+            <aside class="lua-help">
+              <h3>🐍 Lua: шпаргалка</h3>
+      
+              <p class="lua-help-hint">
+                💡 Клик по сниппету — вставить в код (в позицию курсора)
+              </p>
+      
+              <!-- ===================== devices ===================== -->
+              <details open>
+                <summary>devices</summary>
+      
+                <div class="lua-snip-title">Чтение одного поля</div>
+                <pre>local t = devices.get('dev_id', 'temp')</pre>
+      
+                <div class="lua-snip-title">Чтение всех полей</div>
+                <pre>local s = devices.get('dev_id')</pre>
+      
+                <div class="lua-snip-title">Запись поля</div>
+                <pre>devices.set('dev_id', 'temp', 22.5)</pre>
+      
+                <div class="lua-snip-title">Список всех устройств</div>
+                <pre>for id, name in pairs(devices.list()) do
+        log(id .. ' = ' .. name)
+      end</pre>
+              </details>
+      
+              <!-- ===================== knx ===================== -->
+              <details open>
+                <summary>knx</summary>
+      
+                <div class="lua-snip-title">Чтение поля устройства</div>
+                <pre>knx.read('dev_id', 'humidity')</pre>
+      
+                <div class="lua-snip-title">Запись поля устройства</div>
+                <pre>knx.write('dev_id', 'humidity', 24.0)</pre>
+      
+                <div class="lua-snip-title">Прямая запись в GA (bool)</div>
+                <pre>knx.ga_write('1/2/3', true)</pre>
+      
+                <div class="lua-snip-title">Прямая запись в GA (температура)</div>
+                <pre>knx.ga_write('1/2/4', 21.5, 'DPT-9.001')</pre>
+      
+                <div class="lua-snip-title">Прямая запись в GA (0..255)</div>
+                <pre>knx.ga_write('1/2/5', 200, 'DPT-5.001')</pre>
+      
+                <div class="lua-snip-title">Запросить значение с шины</div>
+                <pre>knx.ga_read('1/2/3')</pre>
+      
+                <div class="lua-snip-title">Прочитать последнее из реестра</div>
+                <pre>local v = knx.ga_get('1/2/4')
+      if v ~= nil then log('temp: ' .. v) end</pre>
+      
+                <div class="lua-snip-title">Метаданные GA</div>
+                <pre>local rec = knx.ga_info('1/2/4')
+      if rec then
+        log(rec.name .. ' = ' .. tostring(rec.value)
+            .. ' (' .. tostring(rec.dpt) .. ')')
+      end</pre>
+              </details>
+      
+              <!-- ===================== modbus ===================== -->
+              <details open>
+                <summary>modbus</summary>
+      
+                <div class="lua-snip-title">Чтение поля устройства</div>
+                <pre>local v = modbus.read('dev_id', 'temp')</pre>
+      
+                <div class="lua-snip-title">Запись поля устройства</div>
+                <pre>modbus.write('dev_id', 'temp', 22)</pre>
+      
+                <div class="lua-snip-title">Конфиг TCP</div>
+                <pre>local cfg = {
+        transport = 'tcp',     -- 'tcp' | 'rtu'
+        host      = '192.168.1.50',
+        tcp_port  = 502,
+        unit      = 1,
+        timeout   = 1.0,
+      }</pre>
+      
+                <div class="lua-snip-title">Конфиг RTU</div>
+                <pre>local cfg = {
+        transport = 'rtu', port = 'COM3', baudrate = 9600,
+        parity = 'N', stopbits = 1, bytesize = 8,
+        unit = 1, timeout = 1.0,
+      }</pre>
+      
+                <div class="lua-snip-title">uint16 holding</div>
+                <pre>local raw = modbus.read_registers(cfg, {
+        kind = 'holding', address = 100, count = 1,
+        type = 'uint16',
+      })</pre>
+      
+                <div class="lua-snip-title">float32 input с округлением</div>
+                <pre>local temp = modbus.read_registers(cfg, {
+        kind = 'input', address = 200, count = 2,
+        type = 'float32', round = 1,
+      })</pre>
+      
+                <div class="lua-snip-title">Запись holding</div>
+                <pre>modbus.write_register(cfg, {
+        kind = 'holding', address = 100, type = 'uint16',
+      }, 42)</pre>
+      
+                <div class="lua-snip-title">Запись coil</div>
+                <pre>modbus.write_register(cfg, {
+        kind = 'coil', address = 10, type = 'bool',
+      }, true)</pre>
+              </details>
+      
+              <!-- ===================== mqtt ===================== -->
+              <details>
+                <summary>mqtt</summary>
+      
+                <div class="lua-snip-title">Публикация</div>
+                <pre>mqtt.publish('smarthome/alert', '{"msg":"hello"}', true, 1)</pre>
+              </details>
+      
+              <!-- ===================== log / notify ===================== -->
+              <details>
+                <summary>log / notify</summary>
+      
+                <div class="lua-snip-title">Лог</div>
+                <pre>log('сообщение в лог')</pre>
+      
+                <div class="lua-snip-title">Уведомление</div>
+                <pre>notify('Заголовок', 'Текст', 'info')</pre>
+              </details>
+      
+              <!-- ===================== ctx ===================== -->
+              <details>
+                <summary>ctx</summary>
+      
+                <div class="lua-snip-title">Проверка триггера</div>
+                <pre>if ctx.trigger == 'timer' then
+        log('запущен по таймеру')
+      end</pre>
+      
+                <div class="lua-snip-title">Поля ctx</div>
+                <pre>-- ctx.trigger   = 'manual' | 'knx' | 'mqtt'
+      --                | 'device_changed' | 'timer'
+      -- ctx.script_id — id текущего скрипта
+      -- ctx.event     — полное событие
+      -- ctx.device_id, ctx.field, ctx.value
+      -- ctx.knx, ctx.mqtt, ctx.timer_id</pre>
+              </details>
+      
+              <!-- ===================== Пример: термостат ===================== -->
+              <details>
+                <summary>Пример: термостат</summary>
+      
+                <pre>local t = devices.get('climate', 'temp')
+      if t and t &gt; 25 then
+        devices.set('climate', 'target', 22)
+        knx.write('climate', 'target', 22)
+        notify('GS Smart',
+               'Жарко: ' .. t .. '°C', 'warning')
+      end</pre>
+              </details>
+      
+              <!-- ===================== HTTP ===================== -->
+              <details>
+                <summary>🌐 HTTP-запросы</summary>
+      
+                <div class="lua-snip-title">GET</div>
+                <pre>local body, status = http.get("http://example.com/api")
+      if status == 200 then
+          log("Ответ: " .. body)
+      else
+          log("Ошибка: " .. tostring(status))
+      end</pre>
+      
+                <div class="lua-snip-title">TCP-check</div>
+                <pre>local ok, err = http.check("141.95.99.79", 80)
+      if not ok then
+          log("Хост недоступен: " .. tostring(err))
+      end</pre>
+              </details>
+      
+              <!-- ===================== Telegram ===================== -->
+              <details>
+                <summary>✈️ Telegram</summary>
+      
+                <div class="lua-snip-title">Простое сообщение</div>
+                <pre>telegram.send(nil, "Привет из GS Smart!")</pre>
+      
+                <div class="lua-snip-title">С явным chat_id</div>
+                <pre>telegram.send("123456789", "Температура: 22°C")</pre>
+      
+                <div class="lua-snip-title">Markdown / HTML</div>
+                <pre>telegram.send_markdown(nil, "*Жирный* _курсив_ `код`")
+      telegram.send_html(nil, "&lt;b&gt;Жирный&lt;/b&gt; &lt;i&gt;курсив&lt;/i&gt;")</pre>
+      
+                <div class="lua-snip-title">Фото по URL</div>
+                <pre>telegram.photo(nil, "https://example.com/photo.jpg", "Подпись")</pre>
+      
+                <div class="lua-snip-title">Проверка токена</div>
+                <pre>local me = telegram.me()
+      if me.ok then
+          log("Бот: " .. me.result.username)
+      else
+          log("Ошибка: " .. tostring(me.error))
+      end</pre>
+      
+                <div class="lua-snip-title">Пример: уведомление при протечке</div>
+                <pre>local leak = devices.get("leak1", "alarm")
+      if leak then
+          local r = telegram.send(nil,
+              "🚨 ПРОТЕЧКА! " .. devices.get("leak1").."")
+          if not r.ok then
+              log("Telegram error: " .. tostring(r.error))
+          end
+      end</pre>
+              </details>
+      
+              <!-- ===================== JSON ===================== -->
+              <details>
+                <summary>🧩 JSON</summary>
+      
+                <div class="lua-snip-title">Разбор</div>
+                <pre>local data = json.decode('{"temp": 22.5, "hum": 60}')
+      log("Температура: " .. data.temp)
+      log("Влажность: " .. data.hum)</pre>
+      
+                <div class="lua-snip-title">Сериализация</div>
+                <pre>local payload = json.encode({ on = true, level = 5 })
+      log(payload)   -- {"on":true,"level":5}</pre>
+              </details>
+      
+              <!-- ===================== Погода ===================== -->
+              <details>
+                <summary>🌤 Погода (OpenWeather)</summary>
+      
+                <pre>local url = "http://api.openweathermap.org/data/2.5/weather" ..
+                  "?id=584243&units=metric&appid=ВАШ_КЛЮЧ"
+      
+      local body, status = http.get(url)
+      if status ~= 200 then
+          log("Статус: " .. tostring(status))
+          return
+      end
+      
+      local data = json.decode(body)
+      if data and data.main then
+          log("Влажность: " .. data.main.humidity .. "%")
+          devices.set("Улица влажность", "humidity", data.main.humidity)
+      end</pre>
+              </details>
+      
+              <!-- ===================== Уведомления ===================== -->
+              <details>
+                <summary>🔔 Уведомления</summary>
+      
+                <div class="lua-snip-title">Info</div>
+                <pre>notify("Температура", "На улице " .. temp .. " °C", "info")</pre>
+      
+                <div class="lua-snip-title">Error</div>
+                <pre>notify("Протечка!", "Датчик в ванной", "error")</pre>
+              </details>
+      
+              <!-- ===================== Циклы ===================== -->
+              <details>
+                <summary>🔁 Циклы, таблицы</summary>
+      
+                <div class="lua-snip-title">Перебор устройств</div>
+                <pre>for id, name in pairs(devices.list()) do
+          log(id .. " → " .. name)
+      end</pre>
+      
+                <div class="lua-snip-title">Перебор полей устройства</div>
+                <pre>local st = devices.get("sensor1")
+      for k, v in pairs(st) do
+          log(k .. " = " .. tostring(v))
+      end</pre>
+      
+                <div class="lua-snip-title">Условная логика</div>
+                <pre>local t = devices.get("sensor1", "temp")
+      if t and t > 25 then
+          devices.set("fan1", "on", true)
+      end</pre>
+              </details>
+      
+              <!-- ===================== Обработка ошибок ===================== -->
+              <details>
+                <summary>⚠️ Обработка ошибок</summary>
+      
+                <div class="lua-snip-title">pcall</div>
+                <pre>local ok, res = pcall(function()
+          return devices.get("nonexistent", "field")
+      end)
+      if not ok then
+          log("Ошибка: " .. tostring(res))
+      end</pre>
+      
+                <div class="lua-snip-title">Проверка nil</div>
+                <pre>local t = devices.get("sensor1", "temp")
+      if t == nil then
+          log("Устройство или поле не найдено")
+          return
+      end</pre>
+              </details>
+      
+              <!-- ===================== Сниппеты ===================== -->
+              <details>
+                <summary>💡 Сниппеты</summary>
+      
+                <div class="lua-snip-title">Форматирование</div>
+                <pre>log(string.format("Температура: %.1f °C", temp))</pre>
+      
+                <div class="lua-snip-title">Округление</div>
+                <pre>local r = math.floor(temp + 0.5)</pre>
+      
+                <div class="lua-snip-title">Приведение к числу</div>
+                <pre>local n = tonumber(devices.get("sensor1", "raw"))</pre>
+      
+                <div class="lua-snip-title">Случайное число</div>
+                <pre>math.randomseed(os.time())
+      local rnd = math.random(1, 100)</pre>
+              </details>
+            </aside>
 
       <!-- Центральная колонка -->
       <section class="lua-main">
