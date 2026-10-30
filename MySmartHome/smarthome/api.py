@@ -54,14 +54,39 @@ def notify_clients(event_type, data):
             except Exception:
                 pass
 
+import threading, time
+
+_ui_notify_lock = threading.Lock()
+_ui_notify_pending = False
+_ui_notify_last_ts = 0.0
+UI_NOTIFY_MIN_INTERVAL = 0.5   # сек — не чаще 2 раз в секунду
+
+
 def notify_state_changed():
-    log.info("[sse] notify_state_changed, clients =%s", len(_sse_clients))
-    with _sse_lock:
-        for q in list(_sse_clients):
-            try:
-                q.put_nowait("changed")
-            except Exception:
-                pass
+    global _ui_notify_pending, _ui_notify_last_ts
+
+    now = time.time()
+    with _ui_notify_lock:
+        # слишком часто — откладываем
+        if now - _ui_notify_last_ts < UI_NOTIFY_MIN_INTERVAL:
+            if _ui_notify_pending:
+                return
+            _ui_notify_pending = True
+
+            def _later():
+                global _ui_notify_pending, _ui_notify_last_ts
+                time.sleep(UI_NOTIFY_MIN_INTERVAL)
+                with _ui_notify_lock:
+                    _ui_notify_pending = False
+                    _ui_notify_last_ts = time.time()
+                _do_notify_clients_changed()
+
+            threading.Timer(UI_NOTIFY_MIN_INTERVAL, _later).start()
+            return
+
+        _ui_notify_last_ts = now
+
+    _do_notify_clients_changed()
 
 
 @api.route("/events/stream")
