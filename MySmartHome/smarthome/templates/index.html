@@ -483,17 +483,77 @@ for id, name in pairs(devices.list()) do
 end</pre>
         </details>
 
-        <details>
-          <summary>knx</summary>
-          <pre>knx.read('dev_id', 'humidity')
-knx.write('dev_id', 'humidity', 24.0)</pre>
-        </details>
+       
+          <details open>
+            <summary>knx</summary>
+            <pre>-- По устройству/полю 
+  knx.read('dev_id', 'humidity')
+  knx.write('dev_id', 'humidity', 24.0)
+  
+  -- Напрямую по групповому адресу
+  knx.ga_write('1/2/3', true)                 -- bool
+  knx.ga_write('1/2/4', 21.5, 'DPT-9.001')    -- температура
+  knx.ga_write('1/2/5', 200,  'DPT-5.001')    -- 0..255
+  
+  -- Запросить актуальное значение с шины
+  knx.ga_read('1/2/3')
+  
+  -- Прочитать последнее известное (из реестра)
+  local v = knx.ga_get('1/2/4')
+  if v ~= nil then log('temp: '..v) end
+  
+  -- Полная запись из реестра
+  local rec = knx.ga_info('1/2/4')
+  if rec then
+    log(rec.name .. ' = ' .. tostring(rec.value)
+        .. ' (' .. tostring(rec.dpt) .. ')')
+  end</pre>
+          </details>
 
         <details>
-          <summary>modbus</summary>
-          <pre>local v = modbus.read('dev_id', 'temp')
-modbus.write('dev_id', 'temp', 22)</pre>
-        </details>
+          <details open>
+            <summary>modbus</summary>
+            <pre>-- По устройству/полю 
+  local v = modbus.read('dev_id', 'temp')
+  modbus.write('dev_id', 'temp', 22)
+  
+  -- Напрямую по регистру
+  local cfg = {
+    transport = 'tcp',     -- 'tcp' | 'rtu'
+    host      = '192.168.1.50',
+    tcp_port  = 502,
+    unit      = 1,
+    timeout   = 1.0,
+  }
+  -- RTU-пример:
+  -- local cfg = {
+  --   transport = 'rtu', port = 'COM3', baudrate = 9600,
+  --   parity = 'N', stopbits = 1, bytesize = 8,
+  --   unit = 1, timeout = 1.0,
+  -- }
+  
+  -- uint16 holding-регистр 100
+  local raw = modbus.read_registers(cfg, {
+    kind = 'holding', address = 100, count = 1,
+    type = 'uint16',
+  })
+  
+  -- float32 input-регистр 200 с масштабированием
+  local temp = modbus.read_registers(cfg, {
+    kind = 'input', address = 200, count = 2,
+    type = 'float32', round = 1,
+  })
+  
+  -- Запись: holding 100 = 42
+  modbus.write_register(cfg, {
+    kind = 'holding', address = 100, type = 'uint16',
+  }, 42)
+  
+  -- Запись coil 10 = true
+  modbus.write_register(cfg, {
+    kind = 'coil', address = 10, type = 'bool',
+  }, true)</pre>
+          </details>
 
         <details>
           <summary>mqtt</summary>
@@ -657,19 +717,28 @@ if t and t > 25 then
 end</pre>
         </details>
 
-        <details>
-          <summary>🔌 KNX, MQTT, Modbus</summary>
-          <pre>-- KNX: прочитать / записать
-local v = knx.read("sensor1", "temp")
-knx.write("lamp1", "on", true)
-
--- MQTT: публикация
-mqtt.publish("home/alerts", '{"msg":"hello"}', false, 0)
-
--- Modbus: чтение/запись
-local x = modbus.read("meter1", "power")
-modbus.write("meter1", "setpoint", 42)</pre>
-        </details>
+        
+          <details>
+            <summary>🔌 KNX, MQTT, Modbus (пример)</summary>
+            <pre>-- KNX: устройство и прямой GA
+  local t = devices.get("climate", "target")
+  knx.ga_write("1/2/10", t, "DPT-9.001")
+  
+  -- KNX: запрос значения и его получение
+  knx.ga_read("1/2/10")
+  -- (значение придёт асинхронно, через ~100 мс)
+  -- ... чуть позже в другом скрипте/триггере:
+  local cur = knx.ga_get("1/2/10")
+  
+  -- Modbus напрямую
+  local cfg = { transport="tcp", host="10.0.0.5", tcp_port=502, unit=1 }
+  local p = modbus.read_registers(cfg, {
+    kind="holding", address=0, count=2, type="float32"
+  })
+  
+  -- MQTT
+  mqtt.publish("home/alerts", '{"msg":"hello"}', false, 0)</pre>
+          </details>
 
         <details>
           <summary>⚠️ Обработка ошибок</summary>
