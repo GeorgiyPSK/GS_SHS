@@ -1786,3 +1786,11 @@ body { padding: 1.5rem; }
 #logs-container::-webkit-scrollbar-thumb:hover {
   background: rgba(255,255,255,0.3);
 }
+
+tr.kga-flash {
+  animation: kgaFlash 3.0s ease-out;
+}
+@keyframes kgaFlash {
+  0%   { background: rgba(79, 195, 247, 0.35); }
+  100% { background: transparent; }
+}
