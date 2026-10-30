@@ -15,6 +15,29 @@ function setMode(m) {
   refresh();
 }
 
+async function setState(id, patch) {
+  const d = devicesCache.find(x => x.id === id);
+  if (d) {
+    for (const [k, v] of Object.entries(patch)) {
+      const cur = d.state[k];
+      if (typeof cur === 'boolean') d.state[k] = (v === true || v === 'true' || v === 1 || v === '1' || v === 'on');
+      else if (typeof cur === 'number') d.state[k] = Number(v);
+      else d.state[k] = v;
+    }
+    d.updated = new Date().toISOString().slice(0, 19);
+    if (typeof refreshDeviceModal === 'function') refreshDeviceModal();
+    if (currentView === 'grid') renderCurrentView();
+  }
+
+  try {
+    await api('/api/devices/' + id + '/state', 'POST', patch);
+  } catch (e) {
+    console.error('[setState]', e);
+  }
+
+  setTimeout(refresh, 50);
+}
+
 function updateEditVisibility() {
   const edit = currentMode === 'edit';
   ['grid-toolbar', 'events-toolbar', 'scenarios-toolbar', 'timers-toolbar']
