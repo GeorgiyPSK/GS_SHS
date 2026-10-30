@@ -1,0 +1,129 @@
+/* --- Lua-редактор: gutter + код --- */
+.lua-editor-wrap {
+  position: relative;
+  display: flex;                 /* gutter слева, код справа */
+  align-items: stretch;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 6px;
+  overflow: hidden;
+  background: #1e1e1e;
+}
+
+/* тёмная/светлая тема */
+.lua-editor-wrap.light { background: #fafafa; }
+
+.lua-gutter {
+  flex: 0 0 auto;
+  overflow: hidden;              /* скроллим только синхронно с textarea */
+  padding: 8px 6px 8px 8px;
+  text-align: right;
+  user-select: none;
+  font-family: ui-monospace, Menlo, Consolas, "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(255,255,255,.35);
+  background: rgba(255,255,255,.03);
+  border-right: 1px solid rgba(255,255,255,.08);
+}
+.lua-editor-wrap.light .lua-gutter {
+  color: rgba(0,0,0,.4);
+  background: rgba(0,0,0,.03);
+  border-right-color: rgba(0,0,0,.08);
+}
+.lua-gutter > div {
+  height: 1.5em;                 /* совпадает с line-height */
+  white-space: nowrap;
+}
+
+/* контейнер для pre+textarea */
+.lua-code-area {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* textarea и pre — один размер, один шрифт, один padding */
+.lua-editor-wrap .lua-input,
+.lua-editor-wrap .lua-highlight {
+  margin: 0;
+  padding: 8px 10px;
+  border: 0;
+  outline: 0;
+  font-family: ui-monospace, Menlo, Consolas, "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  letter-spacing: 0;
+  tab-size: 4;
+  white-space: pre;
+  overflow: auto;
+  box-sizing: border-box;
+}
+
+.lua-editor-wrap .lua-input {
+  position: absolute;
+  inset: 0;
+  resize: none;
+  background: transparent;
+  color: transparent;
+  caret-color: #fff;
+  z-index: 2;
+}
+.lua-editor-wrap.light .lua-input { caret-color: #000; }
+
+.lua-editor-wrap .lua-highlight {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  color: #ddd;
+  background: transparent;
+  z-index: 1;
+}
+.lua-editor-wrap.light .lua-highlight { color: #222; }
+
+.lua-help pre {
+  cursor: pointer;
+  position: relative;
+  transition: background .15s;
+}
+.lua-help pre:hover {
+  background: rgba(79, 195, 247, .10);
+}
+.lua-help pre.kh-copied {
+  background: rgba(76, 175, 80, .25);
+}
+
+/* --- Lua help --- */
+.lua-help-hint {
+  font-size: .75rem;
+  opacity: .6;
+  margin: 0 0 .6rem;
+}
+
+.lua-snip-title {
+  font-size: .72rem;
+  opacity: .55;
+  margin: .5rem 0 .15rem .1rem;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+
+.lua-help pre {
+  position: relative;
+  cursor: pointer;
+  margin: 0 0 .15rem;
+  padding: 6px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, .03);
+  border: 1px solid transparent;
+  transition: background .12s, border-color .12s;
+  user-select: text;      /* можно выделять для копирования */
+}
+
+.lua-help pre:hover {
+  background: rgba(79, 195, 247, .10);
+  border-color: rgba(79, 195, 247, .35);
+}
+
+.lua-help pre.kh-copied {
+  background: rgba(76, 175, 80, .28);
+  border-color: rgba(76, 175, 80, .6);
+}
