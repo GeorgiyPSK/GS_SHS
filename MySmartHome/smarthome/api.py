@@ -202,20 +202,20 @@ def mqtt_settings():
 
 @api.route("/mqtt/status", methods=["GET"])
 def mqtt_status():
+    """
+    Единый формат для индикатора в шапке:
+      enabled   — MQTT включён в настройках (галочка в UI)
+      available — установлена ли библиотека paho-mqtt
+      connected — открыто ли соединение с брокером прямо сейчас
+      host/port — для tooltip
+    """
     cfg = state.get("mqtt") or {}
-    enabled = bool(cfg.get("enabled"))
-    available = mqtt_client.is_available()
-    connected = mqtt_client.is_connected()
-
     return jsonify({
-        # для индикатора
-        "enabled": enabled,
-        # совместимость с UI, который уже был
-        "available": available,
-        "connected": connected,
-        # полезное для tooltip
-        "host": cfg.get("host") or "",
-        "port": cfg.get("port") or 1883,
+        "enabled":   bool(cfg.get("enabled")),
+        "available": mqtt_client.is_available(),
+        "connected": mqtt_client.is_connected(),
+        "host":      cfg.get("host") or "",
+        "port":      cfg.get("port") or 1883,
     })
 
 
