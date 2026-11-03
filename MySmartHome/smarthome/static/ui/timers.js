@@ -108,12 +108,20 @@ function renderTimers() {
     return `
       <div class="row" data-id="${t.id}">
         <div class="row-head">
-          <input type="text" value="${esc(t.name || '')}"
-            data-key="name" oninput="markRowDirty(this)"
-            style="background:transparent;border:none;color:#fff;font-size:1.1rem;font-weight:600;flex:1;">
-          <label style="display:flex;gap:.4rem;align-items:center;font-size:.9rem;">
-            тип:
-            <select data-key="kind" onchange="onTimerKindChange(this, '${t.id}')">
+        <input type="text" value="${esc(t.name || '')}"
+        data-key="name" oninput="markRowDirty(this)"
+        style="background:transparent;border:none;color:#fff;font-size:1.1rem;font-weight:600;flex:1;">
+      <span class="timer-id-badge"
+            title="Клик — скопировать id"
+            data-timer-id="${esc(t.id)}"
+            onclick="copyTimerId(event, this.dataset.timerId)"
+            style="font-family:monospace;font-size:.72rem;opacity:.65;
+                   background:rgba(255,255,255,.06);padding:.1rem .4rem;
+                   border-radius:4px;cursor:pointer;user-select:none;
+                   margin-left:.3rem;white-space:nowrap;">${esc(t.id)}</span>
+                   <label class="form-row" style="margin:0;gap:.3rem;">
+                   <span style="color:var(--form-muted);font-size:.85rem;">тип:</span>
+                   <select data-key="kind" onchange="onTimerKindChange(this, '${t.id}')">
               <option value="interval" ${kind === 'interval' ? 'selected' : ''}>интервал</option>
               <option value="daily"    ${kind === 'daily'    ? 'selected' : ''}>ежедневно</option>
               <option value="weekly"   ${kind === 'weekly'   ? 'selected' : ''}>еженедельно</option>
@@ -194,3 +202,49 @@ async function saveTimer(id) {
   timersCache = await api('/api/timers');
   renderTimers();
 }
+
+/* ============================================================
+   Копирование id таймера в буфер обмена
+   ============================================================ */
+
+   async function copyTimerId(ev, id) {
+    if (ev) {
+      ev.stopPropagation();
+      ev.preventDefault();
+    }
+    if (!id) return;
+  
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(id);
+      } else {
+        // fallback для http://localhost и старых браузеров
+        const ta = document.createElement('textarea');
+        ta.value = id;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        ta.style.left = '-1000px';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      showTimerToast('📋 id ' + id + ' — скопирован');
+    } catch (e) {
+      showTimerToast('❌ Не удалось скопировать: ' + e.message);
+    }
+  }
+  
+  function showTimerToast(msg) {
+    let el = document.getElementById('timer-toast-el');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'timer-toast-el';
+      el.className = 'timer-toast';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.classList.add('visible');
+    clearTimeout(el._hideTimer);
+    el._hideTimer = setTimeout(() => el.classList.remove('visible'), 1500);
+  }
