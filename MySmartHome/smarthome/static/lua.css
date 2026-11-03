@@ -127,3 +127,97 @@
   background: rgba(76, 175, 80, .28);
   border-color: rgba(76, 175, 80, .6);
 }
+
+/* ============ Устройства на вкладке Lua ============ */
+.lua-dev {
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 6px;
+  padding: .35rem .45rem;
+  margin-bottom: .35rem;
+  background: rgba(255,255,255,.02);
+}
+
+.lua-dev-head {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  flex-wrap: wrap;
+}
+
+.lua-dev-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.lua-dev-id {
+  font-family: monospace;
+  font-size: .72rem;
+  padding: .05rem .3rem;
+  border-radius: 4px;
+  background: rgba(79,195,247,.14);
+  color: #9cdcfe;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+  user-select: none;
+}
+.lua-dev-id:hover {
+  background: rgba(79,195,247,.32);
+  color: #e0f2ff;
+}
+
+.lua-dev-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .25rem;
+  margin-top: .3rem;
+}
+
+.lua-dev-field {
+  font-family: monospace;
+  font-size: .72rem;
+  padding: .05rem .35rem;
+  border-radius: 4px;
+  background: rgba(255,255,255,.05);
+  color: #cfd6dd;
+  cursor: pointer;
+  user-select: none;
+  transition: background .15s, color .15s;
+}
+.lua-dev-field:hover {
+  background: rgba(76,217,123,.22);
+  color: #b8f0c8;
+}
+
+.lua-dev-empty {
+  opacity: .55;
+  font-size: .8rem;
+  padding: .4rem;
+  text-align: center;
+}
+
+/* Тост «скопировано» */
+.lua-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  padding: .5rem .9rem;
+  border-radius: 8px;
+  background: rgba(30,40,60,.95);
+  color: #e0f2ff;
+  border: 1px solid rgba(79,195,247,.5);
+  box-shadow: 0 4px 16px rgba(0,0,0,.4);
+  font-size: .85rem;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .2s, transform .2s;
+  z-index: 10000;
+}
+.lua-toast.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
