@@ -1678,16 +1678,36 @@ def knx_settings():
 
 @api.route("/knx/status", methods=["GET"])
 def knx_status():
+    """
+    Единый формат для индикатора в шапке.
+    Сохраняем старые поля (available/running/connected/last_error)
+    и добавляем enabled = «KNX включён в настройках».
+    """
+    cfg = (state.get("settings") or {}).get("knx") or {}
+    enabled = bool(cfg.get("enabled"))
+
     try:
         import knx_client
-        return jsonify(knx_client.get_status())
+        raw = knx_client.get_status() or {}
     except Exception as e:
-        return jsonify({
+        raw = {
             "available": False,
             "connected": False,
-            "last_error": str(e),
             "running": False,
-        })
+            "last_error": str(e),
+        }
+
+    return jsonify({
+        # новые поля для индикатора
+        "enabled": enabled,
+        "connection_type": cfg.get("connection", "automatic"),
+        # старые поля — как было
+        "available": raw.get("available", False),
+        "running": raw.get("running", False),
+        "connected": raw.get("connected", False),
+        "last_change": raw.get("last_change", 0.0),
+        "last_error": raw.get("last_error"),
+    })
 
 
 @api.route("/devices/<did>/knx", methods=["GET", "POST"])
