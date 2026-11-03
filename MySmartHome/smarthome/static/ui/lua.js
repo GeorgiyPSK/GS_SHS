@@ -598,3 +598,174 @@ function luaInsertSnippet(text) {
   }
 }
 
+/* ============================================================
+   Устройства на вкладке Lua
+   ============================================================ */
+
+   let _luaDevicesCache = null;
+   let _luaDevicesSearch = '';
+   
+   /* --- тост --- */
+   
+   function luaToast(msg) {
+     let el = document.getElementById('lua-toast-el');
+     if (!el) {
+       el = document.createElement('div');
+       el.id = 'lua-toast-el';
+       el.className = 'lua-toast';
+       document.body.appendChild(el);
+     }
+     el.textContent = msg;
+     el.classList.add('visible');
+     clearTimeout(el._hideTimer);
+     el._hideTimer = setTimeout(() => el.classList.remove('visible'), 1500);
+   }
+   
+   /* --- копирование в буфер с fallback --- */
+   
+   async function luaCopy(text, label) {
+     try {
+       if (navigator.clipboard && window.isSecureContext) {
+         await navigator.clipboard.writeText(text);
+       } else {
+         // fallback для http://localhost и старых браузеров
+         const ta = document.createElement('textarea');
+         ta.value = text;
+         ta.style.position = 'fixed';
+         ta.style.opacity = '0';
+         ta.style.left = '-1000px';
+         document.body.appendChild(ta);
+         ta.select();
+         document.execCommand('copy');
+         document.body.removeChild(ta);
+       }
+       luaToast('📋 ' + (label || text) + ' — скопировано');
+     } catch (e) {
+       luaToast('❌ Не удалось скопировать: ' + e.message);
+     }
+   }
+   
+   /* --- загрузка списка --- */
+   
+   async function loadLuaDevices(force = false) {
+     if (_luaDevicesCache && !force) return _luaDevicesCache;
+     try {
+       const r = await fetch('/api/lua/devices');
+       if (!r.ok) throw new Error('HTTP ' + r.status);
+       _luaDevicesCache = await r.json() || {};
+     } catch (e) {
+       _luaDevicesCache = {};
+       const el = document.getElementById('lua-devices-list');
+       if (el) {
+         el.innerHTML = '<div class="lua-dev-empty">⚠️ Не удалось загрузить</div>';
+       }
+       return _luaDevicesCache;
+     }
+     return _luaDevicesCache;
+   }
+   
+   /* --- рендер списка --- */
+   
+   async function renderLuaDevicesList(force = false) {
+     const wrap = document.getElementById('lua-devices-list');
+     const counter = document.getElementById('lua-devices-count');
+     if (!wrap) return;
+   
+     const data = await loadLuaDevices(force);
+     const entries = Object.entries(data);
+   
+     if (counter) counter.textContent = '(' + entries.length + ')';
+   
+     if (entries.length === 0) {
+       wrap.innerHTML = '<div class="lua-dev-empty">Нет устройств</div>';
+       return;
+     }
+   
+     const searchEl = document.getElementById('lua-devices-search');
+     const q = (searchEl ? searchEl.value : '').trim().toLowerCase();
+   
+     const filtered = entries.filter(([id, d]) => {
+       if (!q) return true;
+       const hay = (id + ' ' + (d.name || '') + ' ' +
+         (d.fields || []).join(' ')).toLowerCase();
+       return hay.includes(q);
+     });
+   
+     if (filtered.length === 0) {
+       wrap.innerHTML = '<div class="lua-dev-empty">Ничего не найдено</div>';
+       return;
+     }
+   
+     // сортировка: по имени (регистронезависимо)
+     filtered.sort((a, b) => {
+       const na = (a[1].name || '').toLowerCase();
+       const nb = (b[1].name || '').toLowerCase();
+       return na < nb ? -1 : na > nb ? 1 : 0;
+     });
+   
+     wrap.innerHTML = filtered.map(([id, d]) => {
+       const name = escapeHtmlLua(d.name || '(без имени)');
+       const fields = (d.fields || []);
+       const fieldsHtml = fields.length
+         ? fields.map(f => {
+             const safeF = escapeHtmlLua(f);
+             return `<span class="lua-dev-field"
+                            data-did="${escapeHtmlLua(id)}"
+                            data-field="${safeF}"
+                            title="devices.get('${escapeHtmlLua(id)}', '${safeF}')"
+                          >${safeF}</span>`;
+           }).join('')
+         : '<span class="lua-dev-empty" style="padding:0;">нет полей</span>';
+   
+       return `
+         <div class="lua-dev">
+           <div class="lua-dev-head">
+             <span class="lua-dev-name" title="${name}">${name}</span>
+             <span class="lua-dev-id" data-did="${escapeHtmlLua(id)}"
+                   title="Клик — копировать id">${escapeHtmlLua(id)}</span>
+           </div>
+           <div class="lua-dev-fields">${fieldsHtml}</div>
+         </div>
+       `;
+     }).join('');
+   
+     // делегирование клика
+     wrap.onclick = (ev) => {
+       const idEl = ev.target.closest('.lua-dev-id');
+       if (idEl && idEl.dataset.did) {
+         luaCopy(idEl.dataset.did, 'id ' + idEl.dataset.did);
+         return;
+       }
+       const fEl = ev.target.closest('.lua-dev-field');
+       if (fEl && fEl.dataset.did && fEl.dataset.field) {
+         const snippet = `devices.get('${fEl.dataset.did}', '${fEl.dataset.field}')`;
+         luaCopy(snippet, 'devices.get(…, ' + fEl.dataset.field + ')');
+         return;
+       }
+     };
+   }
+   
+   /* --- HTML-эскейп (на случай странных имён/полей) --- */
+   
+   function escapeHtmlLua(s) {
+     return String(s)
+       .replace(/&/g, '&amp;')
+       .replace(/</g, '&lt;')
+       .replace(/>/g, '&gt;')
+       .replace(/"/g, '&quot;')
+       .replace(/'/g, '&#39;');
+   }
+   
+   /* --- обновление кэша при изменении устройств --- */
+   
+   document.addEventListener('DOMContentLoaded', () => {
+     // первый рендер (если вкладка активна — по факту отрендерится скрытым, это ок)
+     renderLuaDevicesList();
+   });
+   
+   // если у вас есть SSE-подписка, которая получает "changed" — обновляйте кэш:
+   // (если такое место уже есть — можно не добавлять)
+   window.addEventListener('lua-devices-changed', () => {
+     _luaDevicesCache = null;
+     renderLuaDevicesList(true);
+   });
