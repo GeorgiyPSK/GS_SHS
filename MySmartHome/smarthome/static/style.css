@@ -1794,3 +1794,101 @@ tr.kga-flash {
   0%   { background: rgba(79, 195, 247, 0.35); }
   100% { background: transparent; }
 }
+
+/* ============ Индикаторы соединений в шапке ============ */
+.conn-status {
+  display: flex;
+  gap: .35rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 0 .6rem;
+}
+
+.conn-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  padding: .18rem .5rem;
+  border-radius: 999px;
+  font-size: .75rem;
+  font-weight: 600;
+  line-height: 1;
+  border: 1px solid rgba(255,255,255,.15);
+  background: rgba(255,255,255,.05);
+  color: #cfd6dd;
+  cursor: default;
+  white-space: nowrap;
+  transition: background .2s, border-color .2s, color .2s;
+  position: relative;
+}
+
+.conn-pill::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #888;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.3) inset;
+}
+
+/* состояния */
+.conn-pill[data-state="ok"] {
+  border-color: rgba(76, 217, 123, .55);
+  background: rgba(76, 217, 123, .12);
+  color: #b8f0c8;
+}
+.conn-pill[data-state="ok"]::before {
+  background: #35d07a;
+  box-shadow: 0 0 6px #35d07a;
+}
+
+.conn-pill[data-state="warn"] {
+  border-color: rgba(255, 196, 0, .55);
+  background: rgba(255, 196, 0, .12);
+  color: #ffe8a3;
+}
+.conn-pill[data-state="warn"]::before {
+  background: #ffc400;
+  box-shadow: 0 0 6px #ffc400;
+}
+
+.conn-pill[data-state="err"] {
+  border-color: rgba(255, 92, 92, .55);
+  background: rgba(255, 92, 92, .12);
+  color: #ffb3b3;
+}
+.conn-pill[data-state="err"]::before {
+  background: #ff5c5c;
+  box-shadow: 0 0 6px #ff5c5c;
+}
+
+.conn-pill[data-state="off"] {
+  opacity: .55;
+}
+.conn-pill[data-state="off"]::before {
+  background: #666;
+  box-shadow: none;
+}
+
+.conn-pill[data-state="unknown"]::before {
+  background: #888;
+  animation: conn-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes conn-pulse {
+  0%, 100% { opacity: .35; }
+  50%      { opacity: 1;   }
+}
+
+/* компактный режим на узких экранах */
+@media (max-width: 900px) {
+  .conn-pill {
+    font-size: .7rem;
+    padding: .15rem .4rem;
+  }
+  .conn-pill::before { width: 7px; height: 7px; }
+}
+@media (max-width: 640px) {
+  .conn-pill { padding: .15rem .35rem; }
+  .conn-pill span { display: none; } /* если захотите обернуть текст в <span> */
+}
