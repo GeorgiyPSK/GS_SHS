@@ -1728,20 +1728,125 @@ def device_knx(did):
         return jsonify({"error": "not found"}), 404
     dev.setdefault("knx", {"enabled": False, "fields": {}})
     dev["knx"].setdefault("fields", {})
+
     if request.method == "POST":
         body = request.get_json(silent=True) or {}
         if "enabled" in body:
             dev["knx"]["enabled"] = bool(body["enabled"])
         if "fields" in body and isinstance(body["fields"], dict):
             dev["knx"]["fields"] = body["fields"]
+
         dev["updated"] = datetime.now().isoformat(timespec="seconds")
         save_state()
+
+        # ── синхронизация с реестром GA ───────────────────────────
+        try:
+            import knx_ga_store
+            new_fields = dev["knx"].get("fields") or {}
+            # 1) снимаем старые привязки этого устройства, которые
+            #    больше не действуют (поле удалили или адрес сменили)
+            for addr, rec in list(knx_ga_store.all_gas().items()):
+                if rec.get("device_id") != did:
+                    continue
+                f = rec.get("field") or ""
+                spec = new_fields.get(f) or {}
+                # адрес может быть в spec.address, spec.read.address, spec.write.address
+                addr_set = set()
+                if isinstance(spec, dict):
+                    for a in (
+                        spec.get("address"),
+                        (spec.get("read")  or {}).get("address"),
+                        (spec.get("write") or {}).get("address"),
+                    ):
+                        if a:
+                            addr_set.add(str(a).strip())
+                if addr not in addr_set:
+                    rec["device_id"] = ""
+                    rec["field"] = ""
+            # 2) проставляем привязки для всех полей с адресами
+            for fname, spec in new_fields.items():
+                if not isinstance(spec, dict):
+                    continue
+                addrs = []
+                for a in (
+                    spec.get("address"),
+                    (spec.get("read")  or {}).get("address"),
+                    (spec.get("write") or {}).get("address"),
+                ):
+                    a = (a or "").strip() if isinstance(a, str) else ""
+                    if a and a not in addrs:
+                        addrs.append(a)
+                for addr in addrs:
+                    rec = knx_ga_store.get(addr)
+                    if not rec:
+                        # если GA ещё нет в реестре — создаём минимальную запись
+                        rec = knx_ga_store.upsert(
+                            addr,
+                            name=fname,
+                            dpt=(spec.get("dpt")
+                                 or (spec.get("read")  or {}).get("dpt")
+                                 or (spec.get("write") or {}).get("dpt")
+                                 or "DPT-1.001"),
+                        )
+                    rec["device_id"] = did
+                    rec["field"] = fname
+            save_state()
+        except Exception as e:
+            log.warning("[device-knx] ga_store sync error: %s", e)
+
         try:
             import knx_client
             knx_client.refresh_subscriptions()
         except Exception:
             pass
+
     return jsonify(dev["knx"])
+
+@api.route("/knx/relink_from_devices", methods=["POST"])
+def knx_relink_from_devices():
+    """Пересобрать привязки GA по device.knx.fields всех устройств."""
+    import knx_ga_store
+    linked = 0
+    unlinked = 0
+
+    # 1) все текущие привязки снимаем
+    for rec in knx_ga_store.all_gas().values():
+        if rec.get("device_id"):
+            rec["device_id"] = ""
+            rec["field"] = ""
+            unlinked += 1
+
+    # 2) заново расставляем по устройству
+    for did, dev in state["devices"].items():
+        knx = dev.get("knx") or {}
+        if not knx.get("enabled"):
+            continue
+        for fname, spec in (knx.get("fields") or {}).items():
+            if not isinstance(spec, dict):
+                continue
+            for a in (
+                spec.get("address"),
+                (spec.get("read")  or {}).get("address"),
+                (spec.get("write") or {}).get("address"),
+            ):
+                addr = (a or "").strip() if isinstance(a, str) else ""
+                if not addr:
+                    continue
+                rec = knx_ga_store.get(addr)
+                if not rec:
+                    rec = knx_ga_store.upsert(
+                        addr, name=fname,
+                        dpt=(spec.get("dpt")
+                             or (spec.get("read")  or {}).get("dpt")
+                             or (spec.get("write") or {}).get("dpt")
+                             or "DPT-1.001"),
+                    )
+                rec["device_id"] = did
+                rec["field"] = fname
+                linked += 1
+
+    save_state()
+    return jsonify({"linked": linked, "unlinked": unlinked})
 
 
 @api.route("/devices/<did>/knx/read", methods=["POST"])
@@ -2192,20 +2297,40 @@ def knx_ga_update(addr):
     """Редактирование GA: name/dpt/link."""
     rec = knx_ga_store.get(addr)
     if not rec:
-        return jsonify({"error": "not found"}), 404
+        return jsonify({"error": f"GA {addr} not found"}), 404
+
     body = request.get_json(silent=True) or {}
+
+    # name / dpt / readable / writable
     for k in ("name", "dpt", "readable", "writable"):
         if k in body:
             rec[k] = body[k]
+
+    # привязка к устройству
     if "device_id" in body or "field" in body:
-        dev_id = body.get("device_id", "")
-        field  = body.get("field", "")
+        dev_id = (body.get("device_id") or "").strip()
+        field  = (body.get("field")     or "").strip()
+
         if dev_id and field:
-            knx_ga_store.link_to_device(addr, dev_id, field)
+            dev = state["devices"].get(dev_id)
+            if not dev:
+                return jsonify({"error": f"device {dev_id} not found"}), 400
+            if field not in (dev.get("state") or {}):
+                return jsonify({
+                    "error": f"field {field!r} not in device {dev_id}"
+                }), 400
+            rec["device_id"] = dev_id
+            rec["field"]     = field
         else:
-            knx_ga_store.unlink(addr)
+            rec["device_id"] = ""
+            rec["field"]     = ""
+
+    rec.setdefault("value", None)
+    rec.setdefault("updated", "")
     save_state()
-    return jsonify(rec)
+
+    # возвращаем АКТУАЛЬНЫЕ данные из state (а не ссылку rec)
+    return jsonify(knx_ga_store.get(addr) or rec)
 
 
 @api.route("/knx/group_addresses/<path:addr>/write", methods=["POST"])
