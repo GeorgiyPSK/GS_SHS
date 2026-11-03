@@ -12,32 +12,30 @@
    /* ---------- fetch с кэшем 404 и минутным TTL ---------- */
    
    async function connFetch(path) {
-    if (CONN_DISABLED_ENDPOINTS.has(path)) return { __missing: true };
-  
-    const hit = _connCache.get(path);
-    if (hit && Date.now() - hit.at < 1000) return hit.value;
-  
-    try {
-      const r = await fetch(path, { cache: 'no-store' });
-      let value;
-      if (r.status === 404) {
-        CONN_DISABLED_ENDPOINTS.add(path);
-        value = { __missing: true };
-      } else if (!r.ok) {
-        value = { __error: 'HTTP ' + r.status };
-      } else {
-        value = await r.json();
-      }
-      _connCache.set(path, { at: Date.now(), value });
-      return value;
-    } catch (e) {
-      // Сетевой сбой (ERR_NETWORK_CHANGED, ERR_INTERNET_DISCONNECTED,
-      // ERR_CONNECTION_REFUSED и т.п.) — это НЕ повод считать
-      // эндпоинт «мёртвым». Возвращаем "нет данных", но НЕ кэшируем
-      // надолго — на следующем тике попробуем снова.
-      return { __error: 'network' };
-    }
-  }
+     if (CONN_DISABLED_ENDPOINTS.has(path)) return { __missing: true };
+   
+     const hit = _connCache.get(path);
+     if (hit && Date.now() - hit.at < 1000) return hit.value;
+   
+     try {
+       const r = await fetch(path, { cache: 'no-store' });
+       let value;
+       if (r.status === 404) {
+         CONN_DISABLED_ENDPOINTS.add(path);
+         value = { __missing: true };
+       } else if (!r.ok) {
+         value = { __error: 'HTTP ' + r.status };
+       } else {
+         value = await r.json();
+       }
+       _connCache.set(path, { at: Date.now(), value });
+       return value;
+     } catch (e) {
+       const value = { __error: String(e) };
+       _connCache.set(path, { at: Date.now(), value });
+       return value;
+     }
+   }
    
    /* ---------- установка состояния пилюли ---------- */
    
@@ -53,48 +51,39 @@
       MQTT
       ============================================================ */
    
-      async function connFetchMqtt() {
-        const j = await connFetch('/api/mqtt/status');
-      
-        // сеть/404/ошибка сервера — статус неизвестен, не считаем «выключено»
-        if (j.__missing) {
-          connSetState('mqtt', 'off', 'MQTT: эндпоинт недоступен');
-          return;
-        }
-        if (j.__error) {
-          connSetState('mqtt', 'unknown', 'MQTT: нет ответа (сеть?)');
-          return;
-        }
-      
-        // 1) включён ли MQTT в настройках?
-        //    сначала смотрим enabled, если нет — по available
-        const enabled = (j.enabled !== undefined)
-          ? !!j.enabled
-          : (j.available !== undefined ? !!j.available : true);
-      
-        if (!enabled) {
-          connSetState('mqtt', 'off', 'MQTT выключен в настройках');
-          return;
-        }
-      
-        // 2) библиотека установлена?
-        if (j.available === false) {
-          connSetState('mqtt', 'off',
-            'MQTT: библиотека paho-mqtt не установлена');
-          return;
-        }
-      
-        // 3) есть ли соединение?
-        const where = (j.host ? j.host + ':' + (j.port || 1883) : '');
-        if (j.connected) {
-          connSetState('mqtt', 'ok',
-            'MQTT подключён' + (where ? ': ' + where : ''));
-        } else {
-          connSetState('mqtt', 'err',
-            'MQTT не подключён' + (where ? ' (' + where + ')' : '') +
-            (j.error ? ': ' + j.error : ''));
-        }
-      }
+   async function connFetchMqtt() {
+     const j = await connFetch('/api/mqtt/status');
+   
+     if (j.__missing || j.__error) {
+       const cfg = await connFetch('/api/config');
+       const st  = await connFetch('/api/state');
+       const mqtt = (cfg && cfg.mqtt) || {};
+       if (!mqtt.enabled) {
+         connSetState('mqtt', 'off', 'MQTT выключен');
+         return;
+       }
+       const connected = !!(st && st.mqtt && st.mqtt.connected);
+       connSetState(
+         'mqtt',
+         connected ? 'ok' : 'err',
+         'MQTT ' + (connected ? 'подключён' : 'не подключён') +
+           ': ' + (mqtt.host || '') + ':' + (mqtt.port || '')
+       );
+       return;
+     }
+   
+     if (!j.enabled) {
+       connSetState('mqtt', 'off', 'MQTT выключен');
+       return;
+     }
+     if (j.connected) {
+       connSetState('mqtt', 'ok',
+         'MQTT подключён: ' + (j.host || '') + ':' + (j.port || ''));
+     } else {
+       connSetState('mqtt', 'err',
+         'MQTT не подключён' + (j.error ? ': ' + j.error : ''));
+     }
+   }
    
    /* ============================================================
       KNX
