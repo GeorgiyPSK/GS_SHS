@@ -2230,3 +2230,60 @@ tr.kga-flash {
      background-color: transparent !important;
      border: none !important;
    }
+
+   /* Модалка привязки KNX: разрешаем полям сжиматься и не вылезать */
+#knx-link-modal-content .row {
+  min-width: 0;
+}
+
+#knx-link-modal-content .row > select,
+#knx-link-modal-content .row > input,
+#knx-link-modal-content .row > div {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* У самой модалки — запрет горизонтального overflow,
+   но не у контейнера с полями (иначе select всё равно обрежется) */
+#knx-link-modal-content .modal {
+  overflow-x: hidden;
+}
+
+#knx-link-modal-content select#kl-device {
+  /* обрезка длинного текста в опции */
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.pick-device-row:hover {
+  background: rgba(79,195,247,.12) !important;
+  border-color: rgba(79,195,247,.35) !important;
+}
+.pick-device-row:focus-visible {
+  outline: 2px solid #4fc3f7;
+  outline-offset: 1px;
+}
+
+/* Модалка выбора устройства должна быть поверх остальных модалок */
+#pick-device-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;              /* больше, чем у #knx-link-modal-overlay (обычно 1000/1100) */
+  background: rgba(0,0,0,.6); /* на случай, если .modal-overlay в вашем CSS не имеет фона */
+  display: none;              /* по умолчанию скрыт */
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+#pick-device-overlay.open {
+  display: flex;
+}
+
+/* сама карточка внутри оверлея */
+#pick-device-overlay .modal {
+  z-index: 1201;
+  position: relative;
+}
