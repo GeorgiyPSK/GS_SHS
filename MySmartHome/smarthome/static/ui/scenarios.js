@@ -97,28 +97,27 @@ function renderScenarios() {
   box.innerHTML = list.map(sc => {
     const conds = sc.conditions || [];
     const condHtml = conds.map((c, i) => `
-      <div class="field-row">
-        <label>Если</label>
-        <select data-key="cond-${i}-device"
-                onchange="rebuildFieldOptions(this); markRowDirty(this)">
-          <option value="">— устройство —</option>
-          ${deviceOptions(c.device)}
-        </select>
-        <select data-key="cond-${i}-field"
-                onchange="markRowDirty(this)">
-          <option value="">— поле —</option>
-          ${fieldOptions(c.device, c.field)}
-        </select>
-        <select data-key="cond-${i}-op" onchange="markRowDirty(this)">${opOptions(c.op || '==')}</select>
-        <input type="text" value="${esc(c.value ?? '')}" placeholder="значение"
-          data-key="cond-${i}-value" oninput="markRowDirty(this)">
-        <label style="display:flex;gap:.3rem;align-items:center;font-size:.85rem;">
-          <input type="checkbox" ${c.negate ? 'checked' : ''}
-            data-key="cond-${i}-negate" onchange="markRowDirty(this)"> NOT
-        </label>
-        <button class="btn small danger edit-only"
-          onclick="removeConditionLocal('${sc.id}', ${i})">✕</button>
-      </div>`).join('');
+    <div class="form-row">
+    <label>Если</label>
+    <select data-key="cond-${i}-device"
+            onchange="rebuildFieldOptions(this); markRowDirty(this)">
+      <option value="">— устройство —</option>
+      ${deviceOptions(c.device)}
+    </select>
+    <select data-key="cond-${i}-field" onchange="markRowDirty(this)">
+      <option value="">— поле —</option>
+      ${fieldOptions(c.device, c.field)}
+    </select>
+    <select data-key="cond-${i}-op" onchange="markRowDirty(this)">${opOptions(c.op || '==')}</select>
+    <input type="text" value="${esc(c.value ?? '')}" placeholder="значение"
+      data-key="cond-${i}-value" oninput="markRowDirty(this)" style="flex:1;min-width:100px;">
+    <label style="display:flex;gap:.3rem;align-items:center;font-size:.85rem;margin:0;">
+      <input type="checkbox" ${c.negate ? 'checked' : ''}
+        data-key="cond-${i}-negate" onchange="markRowDirty(this)"> NOT
+    </label>
+    <button class="btn small danger edit-only"
+      onclick="removeConditionLocal('${sc.id}', ${i})">✕</button>
+  </div>`).join('');
 
     const acts = sc.actions || [];
     const actHtml = acts.map((a, i) => `
@@ -134,26 +133,27 @@ function renderScenarios() {
     return `
       <div class="row" data-id="${sc.id}">
         <div class="row-head">
-          <label style="display:flex;gap:.4rem;align-items:center;font-size:.9rem;">
-            пауза перед стартом:
-            <input type="number" min="0" step="0.1" value="${sc.initial_delay ?? 0}"
-              data-key="initial_delay" oninput="markRowDirty(this)"
-              style="width:80px;"> сек
-          </label>
-          <input type="text" value="${esc(sc.name || '')}"
-            data-key="name" oninput="markRowDirty(this)"
-            style="background:transparent;border:none;color:#fff;font-size:1.1rem;font-weight:600;flex:1;">
-          <label style="display:flex;gap:.4rem;align-items:center;font-size:.9rem;">
-            группа: <select data-key="group" onchange="markRowDirty(this)">${groupOpts}</select>
-          </label>
-          <label style="display:flex;gap:.4rem;align-items:center;font-size:.9rem;">
-            логика:
-            <select data-key="logic" onchange="markRowDirty(this)">
-              <option value="AND" ${sc.logic === 'AND' ? 'selected' : ''}>AND</option>
-              <option value="OR"  ${sc.logic === 'OR'  ? 'selected' : ''}>OR</option>
-              <option value="NOT" ${sc.logic === 'NOT' ? 'selected' : ''}>NOT (все)</option>
-            </select>
-          </label>
+        <label class="form-row" style="margin:0;gap:.4rem;flex:0 0 auto;">
+        <span>пауза перед стартом:</span>
+        <input type="number" min="0" step="0.1" value="${sc.initial_delay ?? 0}"
+          data-key="initial_delay" oninput="markRowDirty(this)"
+          style="width:80px;">
+        <span>сек</span>
+      </label>
+      <input type="text" value="${esc(sc.name || '')}"
+        data-key="name" oninput="markRowDirty(this)" style="flex:1;">
+      <label class="form-row" style="margin:0;gap:.4rem;flex:0 0 auto;">
+        <span>группа:</span>
+        <select data-key="group" onchange="markRowDirty(this)">${groupOpts}</select>
+      </label>
+      <label class="form-row" style="margin:0;gap:.4rem;flex:0 0 auto;">
+        <span>логика:</span>
+        <select data-key="logic" onchange="markRowDirty(this)">
+          <option value="AND" ${sc.logic === 'AND' ? 'selected' : ''}>AND</option>
+          <option value="OR"  ${sc.logic === 'OR'  ? 'selected' : ''}>OR</option>
+          <option value="NOT" ${sc.logic === 'NOT' ? 'selected' : ''}>NOT (все)</option>
+        </select>
+      </label>
           <label style="display:flex;align-items:center;gap:.4rem;font-size:.9rem;">
             <input type="checkbox" ${sc.enabled !== false ? 'checked' : ''}
               data-key="enabled" onchange="markRowDirty(this)"> вкл
