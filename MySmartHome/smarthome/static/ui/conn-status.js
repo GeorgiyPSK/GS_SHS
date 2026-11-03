@@ -9,7 +9,7 @@
    const CONN_DISABLED_ENDPOINTS = new Set(); // 404 -> больше не дергаем
    const _connCache = new Map();               // path -> { at, value }
    
-   /* ---------- fetch с кэшем 404 и минутным TTL ---------- */
+   /* ---------- fetch с кэшем 404 и коротким TTL ---------- */
    
    async function connFetch(path) {
      if (CONN_DISABLED_ENDPOINTS.has(path)) return { __missing: true };
@@ -31,9 +31,11 @@
        _connCache.set(path, { at: Date.now(), value });
        return value;
      } catch (e) {
-       const value = { __error: String(e) };
-       _connCache.set(path, { at: Date.now(), value });
-       return value;
+       // Сетевой сбой (ERR_NETWORK_CHANGED, ERR_INTERNET_DISCONNECTED,
+       // ERR_CONNECTION_REFUSED и т.п.) — это НЕ повод считать
+       // эндпоинт «мёртвым». Возвращаем "нет данных", но НЕ кэшируем
+       // надолго — на следующем тике попробуем снова.
+       return { __error: 'network' };
      }
    }
    
@@ -54,7 +56,8 @@
    async function connFetchMqtt() {
      const j = await connFetch('/api/mqtt/status');
    
-     if (j.__missing || j.__error) {
+     // 404 — эндпоинта нет, пробуем выяснить состояние через config/state
+     if (j.__missing) {
        const cfg = await connFetch('/api/config');
        const st  = await connFetch('/api/state');
        const mqtt = (cfg && cfg.mqtt) || {};
@@ -72,16 +75,38 @@
        return;
      }
    
-     if (!j.enabled) {
-       connSetState('mqtt', 'off', 'MQTT выключен');
+     // Сетевая/HTTP-ошибка — статус неизвестен, не считаем «выключено»
+     if (j.__error) {
+       connSetState('mqtt', 'unknown', 'MQTT: нет ответа (сеть?)');
        return;
      }
+   
+     // 1) включён ли MQTT в настройках?
+     const enabled = (j.enabled !== undefined)
+       ? !!j.enabled
+       : (j.available !== undefined ? !!j.available : true);
+   
+     if (!enabled) {
+       connSetState('mqtt', 'off', 'MQTT выключен в настройках');
+       return;
+     }
+   
+     // 2) библиотека установлена?
+     if (j.available === false) {
+       connSetState('mqtt', 'off',
+         'MQTT: библиотека paho-mqtt не установлена');
+       return;
+     }
+   
+     // 3) есть ли соединение?
+     const where = (j.host ? j.host + ':' + (j.port || 1883) : '');
      if (j.connected) {
        connSetState('mqtt', 'ok',
-         'MQTT подключён: ' + (j.host || '') + ':' + (j.port || ''));
+         'MQTT подключён' + (where ? ': ' + where : ''));
      } else {
        connSetState('mqtt', 'err',
-         'MQTT не подключён' + (j.error ? ': ' + j.error : ''));
+         'MQTT не подключён' + (where ? ' (' + where + ')' : '') +
+         (j.error ? ': ' + j.error : ''));
      }
    }
    
@@ -92,8 +117,22 @@
    async function connFetchKnx() {
      const j = await connFetch('/api/knx/status');
    
-     if (j.__missing || j.__error) {
-       connSetState('knx', 'off', 'KNX: нет API статуса');
+     if (j.__missing) {
+       const cfg = await connFetch('/api/config');
+       const st  = await connFetch('/api/state');
+       const knx = (cfg && cfg.knx) || {};
+       if (!knx.enabled) {
+         connSetState('knx', 'off', 'KNX выключен');
+         return;
+       }
+       const connected = !!(st && st.knx && st.knx.connected);
+       connSetState('knx', connected ? 'ok' : 'err',
+         'KNX ' + (connected ? 'подключён' : 'не подключён'));
+       return;
+     }
+   
+     if (j.__error) {
+       connSetState('knx', 'unknown', 'KNX: нет ответа (сеть?)');
        return;
      }
    
@@ -123,8 +162,12 @@
    async function connFetchModbus() {
      const j = await connFetch('/api/modbus/status');
    
-     if (j.__missing || j.__error) {
+     if (j.__missing) {
        connSetState('modbus', 'off', 'Modbus: статус недоступен');
+       return;
+     }
+     if (j.__error) {
+       connSetState('modbus', 'unknown', 'Modbus: нет ответа (сеть?)');
        return;
      }
    
@@ -162,6 +205,8 @@
        const z2m = (cfg && (cfg.zigbee2mqtt || cfg.z2m)) || {};
        if (!z2m.enabled) {
          connSetState('z2m', 'off', 'Zigbee2MQTT выключен');
+       } else if (j.__error) {
+         connSetState('z2m', 'unknown', 'Z2M: нет ответа (сеть?)');
        } else {
          connSetState('z2m', 'warn', 'Z2M включён (нет API статуса)');
        }
@@ -195,6 +240,8 @@
        const tg = (cfg && cfg.telegram) || {};
        if (!tg.enabled) {
          connSetState('telegram', 'off', 'Telegram выключен');
+       } else if (j.__error) {
+         connSetState('telegram', 'unknown', 'Telegram: нет ответа (сеть?)');
        } else if (tg.token) {
          connSetState('telegram', 'warn',
            'Telegram включён (нет API статуса)');
