@@ -387,10 +387,31 @@ function renderKnxGaTable() {
     const rows = list.map(ga => {
       const addr = ga.address;
       const linked = ga.device_id
-        ? `<span class="badge ok" title="${esc(ga.device_id)} / ${esc(ga.field || '')}">
-             🔗 ${esc(ga.field || '—')}
-           </span>`
-        : '<span class="badge off">— не привязан —</span>';
+      ? (() => {
+          // человекочитаемое имя устройства, если оно есть в кэше
+          const dev = (devicesCache || []).find(d => d.id === ga.device_id);
+          const devName = dev ? dev.name : '';
+          const shortId = ga.device_id.slice(0, 6) + '…';
+          const fieldTxt = ga.field || '—';
+    
+          const title = [
+            'GA: ' + ga.address,
+            'поле: ' + fieldTxt,
+            'устройство: ' + (devName || '?') + ' (' + ga.device_id + ')',
+          ].join('\n');
+    
+          return `
+            <span class="badge ok knx-linked" title="${esc(title)}"
+                  onclick="openDeviceModal('${esc(ga.device_id)}'); event.stopPropagation();"
+                  style="cursor:pointer; display:inline-flex; flex-direction:column;
+                         align-items:flex-start; gap:1px; line-height:1.15;">
+              <span style="font-weight:600;">🔗 ${esc(fieldTxt)}</span>
+              <span style="font-family:monospace; font-size:.68rem; opacity:.65;">
+                ${esc(devName ? devName + ' · ' : '')}${esc(shortId)}
+              </span>
+            </span>`;
+        })()
+      : '<span class="badge off">— не привязан —</span>';
 
       const val = formatGaValue(ga);
       const isBool = (ga.dpt || '').startsWith('DPT-1.');
@@ -968,4 +989,16 @@ function knxGaUpdateRow(addr) {
   void tr.offsetWidth;
   tr.classList.add('kga-flash');
   setTimeout(() => tr.classList.remove('kga-flash'), 700);
+}
+
+async function knxRelinkFromDevices() {
+  if (!confirm('Пересобрать привязки GA по device.knx.fields?\n' +
+               'Все текущие привязки в реестре будут перезаписаны.')) return;
+  try {
+    const r = await api('/api/knx/relink_from_devices', 'POST', {});
+    alert(`Готово: привязано ${r.linked}, снято ${r.unlinked}`);
+    await knxGaReload();
+  } catch (e) {
+    alert('Ошибка: ' + e.message);
+  }
 }
