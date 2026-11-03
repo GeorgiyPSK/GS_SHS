@@ -39,7 +39,29 @@
 <!-- ============================================================
      Модалки
      ============================================================ -->
+<!-- Модалка: выбор устройства для привязки GA -->
+<div class="modal-overlay" id="pick-device-overlay"
+     onclick="if (event.target === this) closePickKnxDevice()">
+  <div class="modal" style="max-width:520px; width:100%;">
+    <button class="modal-close" onclick="closePickKnxDevice()" title="Закрыть">✕</button>
+    <div style="padding:1.2rem; display:flex; flex-direction:column; gap:.6rem;">
+      <h3 style="margin:0;">🔍 Выбор устройства</h3>
 
+      <input type="text" id="pick-device-search"
+             placeholder="🔍 поиск по имени или id…"
+             oninput="renderPickKnxDeviceList()"
+             style="width:100%;">
+
+      <div id="pick-device-list"
+           style="max-height:340px; overflow-y:auto; display:flex; flex-direction:column; gap:.25rem;">
+      </div>
+
+      <div style="display:flex; gap:.5rem; justify-content:flex-end; margin-top:.4rem;">
+        <button class="btn gray" onclick="closePickKnxDevice()">Отмена</button>
+      </div>
+    </div>
+  </div>
+</div>
 <!-- Модалка: новый KNX GA -->
 <div class="modal-overlay" id="knx-ga-add-overlay"
      onclick="if (event.target === this) closeKnxGaAddModal()">
