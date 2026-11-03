@@ -822,9 +822,20 @@
         <button class="btn small gray" style="width:100%;margin-bottom:.5rem;"
           onclick="addLuaScript()">➕ Новый скрипт</button>
         <div id="lua-sidebar-list"></div>
+      
+        <!-- 🧩 Устройства для Lua -->
+        <h3 style="margin-top:1rem;display:flex;align-items:center;gap:.4rem;">
+          🧩 Устройства
+          <span id="lua-devices-count"
+                style="font-size:.75rem;opacity:.6;font-weight:400;"></span>
+        </h3>
+        <input type="text" id="lua-devices-search"
+               placeholder="🔍 поиск по имени, id, полю…"
+               oninput="renderLuaDevicesList()"
+               style="width:100%; margin-bottom:.4rem;">
+        <div id="lua-devices-list"
+             style="max-height:340px; overflow-y:auto; font-size:.82rem;"></div>
       </aside>
-    </div>
-  </div>
 
   <!-- ============ MQTT-триггеры ============ -->
   <div id="mqtt-triggers-view" style="display:none;">
