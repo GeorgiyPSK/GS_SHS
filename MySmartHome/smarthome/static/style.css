@@ -1939,13 +1939,29 @@ tr.kga-flash {
    }
    
    /* --- сами контролы --- */
-   #scenarios-view input[type="text"],
-   #scenarios-view input[type="number"],
-   #scenarios-view input[type="time"],
-   #scenarios-view input[type="datetime-local"],
-   #scenarios-view input[type="search"],
-   #scenarios-view select,
-   #scenarios-view textarea,
+   #scenarios-view input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+#scenarios-view select,
+#scenarios-view textarea,
+
+#events-view input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+#events-view select,
+#events-view textarea,
+
+#timers-view input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+#timers-view select,
+#timers-view textarea {
+  height: var(--form-height);
+  padding: 0 var(--form-pad-x);
+  border-radius: var(--form-radius);
+  border: 1px solid var(--form-border);
+  background: var(--form-bg);
+  color: var(--form-text);
+  font: inherit;
+  font-size: .9rem;
+  transition: background .15s, border-color .15s, box-shadow .15s;
+  outline: none;
+  min-width: 0;
+}
    #events-view input[type="text"],
    #events-view input[type="number"],
    #events-view input[type="time"],
@@ -2012,12 +2028,14 @@ tr.kga-flash {
    #scenarios-view input[type="checkbox"],
    #events-view input[type="checkbox"],
    #timers-view input[type="checkbox"] {
-     width: 16px;
-     height: 16px;
-     accent-color: #4fc3f7;
-     vertical-align: middle;
-     cursor: pointer;
-   }
+    width: 16px;
+    height: 16px;
+    min-height: 16px;   /* ← чтобы не «растянулось» */
+    accent-color: #4fc3f7;
+    vertical-align: middle;
+    cursor: pointer;
+    flex: 0 0 auto;     /* ← не сжимать в flex-row */
+  }
    
    /* поле имени/заголовка — визуально крупнее, но в той же «рамке» */
    #scenarios-view .row-head input[type="text"][data-key="name"],
@@ -2083,4 +2101,132 @@ tr.kga-flash {
    #timers-view .form-hint {
      font-size: .82rem;
      color: var(--form-muted);
+   }
+
+   #events-view .form-row,
+#scenarios-view .form-row,
+#timers-view .form-row {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+  margin-bottom: .45rem;
+}
+
+/* ============================================================
+   Жёсткая унификация полей на вкладках Сценарии / События / Таймеры
+   Применяется ко всем input/select/textarea, кроме чекбоксов,
+   радио и файлов. Специфичность намеренно повышена, чтобы
+   перекрыть любые общие правила вида input { background: #fff; }
+   ============================================================ */
+
+   #scenarios-view input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+   #scenarios-view select,
+   #scenarios-view textarea,
+   #events-view input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+   #events-view select,
+   #events-view textarea,
+   #timers-view input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+   #timers-view select,
+   #timers-view textarea {
+     background-color: rgba(255, 255, 255, 0.05) !important;
+     color: #eaf2fb !important;
+     border: 1px solid rgba(255, 255, 255, 0.14) !important;
+     border-radius: 8px !important;
+     height: 34px;
+     padding: 0 .55rem;
+     font: inherit;
+     font-size: .9rem;
+     outline: none;
+     transition: background-color .15s, border-color .15s, box-shadow .15s;
+     min-width: 0;
+     box-sizing: border-box;
+   }
+   
+   #scenarios-view textarea,
+   #events-view textarea,
+   #timers-view textarea {
+     height: auto;
+     min-height: 44px;
+     padding: .4rem .55rem;
+     resize: vertical;
+   }
+   
+   /* placeholder — приглушённый, чтобы не сливался */
+   #scenarios-view input::placeholder,
+   #scenarios-view textarea::placeholder,
+   #events-view input::placeholder,
+   #events-view textarea::placeholder,
+   #timers-view input::placeholder,
+   #timers-view textarea::placeholder {
+     color: rgba(234, 242, 251, 0.45) !important;
+     opacity: 1;
+   }
+   
+   /* hover / focus — сохраняют контраст */
+   #scenarios-view input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):hover,
+   #scenarios-view select:hover,
+   #scenarios-view textarea:hover,
+   #events-view input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):hover,
+   #events-view select:hover,
+   #events-view textarea:hover,
+   #timers-view input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):hover,
+   #timers-view select:hover,
+   #timers-view textarea:hover {
+     background-color: rgba(255, 255, 255, 0.09) !important;
+   }
+   
+   #scenarios-view input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+   #scenarios-view select:focus,
+   #scenarios-view textarea:focus,
+   #events-view input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+   #events-view select:focus,
+   #events-view textarea:focus,
+   #timers-view input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+   #timers-view select:focus,
+   #timers-view textarea:focus {
+     background-color: rgba(255, 255, 255, 0.09) !important;
+     border-color: #4fc3f7 !important;
+     box-shadow: 0 0 0 2px rgba(79, 195, 247, 0.18) !important;
+   }
+   
+   /* выпадающий список: тёмный фон, светлый текст, кастомная стрелка */
+   #scenarios-view select,
+   #events-view select,
+   #timers-view select {
+     appearance: none;
+     -webkit-appearance: none;
+     background-color: rgba(255, 255, 255, 0.05) !important;
+     background-image:
+       linear-gradient(45deg, transparent 50%, rgba(234,242,251,.65) 50%),
+       linear-gradient(135deg, rgba(234,242,251,.65) 50%, transparent 50%);
+     background-position: calc(100% - 14px) 14px, calc(100% - 9px) 14px;
+     background-size: 5px 5px, 5px 5px;
+     background-repeat: no-repeat;
+     padding-right: 1.6rem;
+     cursor: pointer;
+   }
+   
+   /* опции внутри select — браузеры на Windows иногда игнорируют color,
+      принудительно задаём тёмный фон и светлый текст */
+   #scenarios-view select option,
+   #events-view select option,
+   #timers-view select option {
+     background: #1e2738;
+     color: #eaf2fb;
+   }
+   
+   /* чекбоксы — не трогаем размер/цвет фона, только размер */
+   #scenarios-view input[type="checkbox"],
+   #events-view input[type="checkbox"],
+   #timers-view input[type="checkbox"] {
+     width: 16px;
+     height: 16px;
+     min-height: 16px;
+     accent-color: #4fc3f7;
+     cursor: pointer;
+     vertical-align: middle;
+     flex: 0 0 auto;
+     background-color: transparent !important;
+     border: none !important;
    }
