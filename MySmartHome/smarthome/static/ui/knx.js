@@ -699,21 +699,76 @@ function onKnxLinkDeviceChange(prefillField) {
   if (!fieldSel.value && fields.length) fieldSel.value = fields[0];
 }
 
+/* ---------- Свой выбор устройства (вместо prompt) ---------- */
+
 function pickKnxLinkDevice() {
-  const devs = devicesCache.slice().sort(
+  const devs = (devicesCache || []).slice().sort(
     (a, b) => (a.name || '').localeCompare(b.name || '', 'ru')
   );
-  if (!devs.length) return alert('Нет устройств');
-  const lines = devs.map((d, i) => `${i + 1}. ${d.name} — ${d.id}`).join('\n');
-  const n = prompt('Выберите устройство (номер):\n\n' + lines.slice(0, 4000));
-  if (!n) return;
-  const idx = parseInt(n, 10) - 1;
-  const dev = devs[idx];
-  if (!dev) return alert('Неверный номер');
+  if (!devs.length) { alert('Нет устройств'); return; }
 
-  document.getElementById('kl-device-id').value = dev.id;
-  document.getElementById('kl-device').value = dev.id;
+  // сохраняем список в модуле, чтобы рендер мог фильтровать
+  _pickDeviceList = devs;
+
+  const searchEl = document.getElementById('pick-device-search');
+  if (searchEl) searchEl.value = '';
+  renderPickKnxDeviceList();
+
+  document.getElementById('pick-device-overlay').classList.add('open');
+  setTimeout(() => { if (searchEl) searchEl.focus(); }, 50);
+}
+
+let _pickDeviceList = [];
+
+function renderPickKnxDeviceList() {
+  const wrap = document.getElementById('pick-device-list');
+  if (!wrap) return;
+
+  const q = (document.getElementById('pick-device-search')?.value || '')
+    .trim().toLowerCase();
+
+  const list = q
+    ? _pickDeviceList.filter(d =>
+        (d.name || '').toLowerCase().includes(q) ||
+        (d.id || '').toLowerCase().includes(q))
+    : _pickDeviceList;
+
+  if (!list.length) {
+    wrap.innerHTML = '<div class="empty" style="opacity:.6; padding:.6rem;">Ничего не найдено</div>';
+    return;
+  }
+
+  wrap.innerHTML = list.map(d => `
+    <button class="pick-device-row"
+            data-id="${esc(d.id)}"
+            onclick="choosePickKnxDevice('${esc(d.id)}')"
+            style="display:flex; align-items:center; gap:.6rem; text-align:left;
+                   width:100%; padding:.45rem .6rem; border-radius:6px;
+                   background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06);
+                   color:inherit; cursor:pointer; font:inherit;">
+      <span style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis;
+                   white-space:nowrap;">${esc(d.name || '(без имени)')}</span>
+      <span style="font-family:monospace; font-size:.75rem; opacity:.6;">${esc(d.id)}</span>
+    </button>
+  `).join('');
+}
+
+function choosePickKnxDevice(devId) {
+  const dev = _pickDeviceList.find(d => d.id === devId);
+  if (!dev) return;
+
+  const idEl = document.getElementById('kl-device-id');
+  const devSel = document.getElementById('kl-device');
+  if (idEl) idEl.value = dev.id;
+  if (devSel) devSel.value = dev.id;
   onKnxLinkDeviceChange('');
+
+  closePickKnxDevice();
+}
+
+function closePickKnxDevice() {
+  document.getElementById('pick-device-overlay').classList.remove('open');
+  _pickDeviceList = [];
 }
 
 function updateKnxLinkGaInfo(address) {
