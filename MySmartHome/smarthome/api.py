@@ -202,9 +202,20 @@ def mqtt_settings():
 
 @api.route("/mqtt/status", methods=["GET"])
 def mqtt_status():
+    cfg = state.get("mqtt") or {}
+    enabled = bool(cfg.get("enabled"))
+    available = mqtt_client.is_available()
+    connected = mqtt_client.is_connected()
+
     return jsonify({
-        "available": mqtt_client.is_available(),
-        "connected": mqtt_client.is_connected(),
+        # для индикатора
+        "enabled": enabled,
+        # совместимость с UI, который уже был
+        "available": available,
+        "connected": connected,
+        # полезное для tooltip
+        "host": cfg.get("host") or "",
+        "port": cfg.get("port") or 1883,
     })
 
 
