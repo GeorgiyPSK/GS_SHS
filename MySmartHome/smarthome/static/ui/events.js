@@ -10,40 +10,42 @@ function requestBox(req, idx, actIdx) {
   const p = (k) => `a${ai}-${k}`;
 
   const headersHtml = (req.headers || []).map((h, i) => `
-  <div class="form-row">
-  <input type="text" placeholder="Header" value="${esc(h.k || '')}"
-    data-key="${p('h' + i + '-k')}" oninput="markRowDirty(this)">
-  <input type="text" placeholder="Value" value="${esc(h.v || '')}"
-    data-key="${p('h' + i + '-v')}" oninput="markRowDirty(this)" style="flex:1;">
-  <button class="btn small gray" title="Вставить плейсхолдер"
-    onclick="openPhModal(this.previousElementSibling)">🧩</button>
-  <button class="btn small danger edit-only"
-    onclick="reqRemoveHeader('action', ${ai}, ${i}, this)">✕</button>
-</div>`).join('');
+    <div class="form-row" data-req-header="1">
+      <input type="text" placeholder="Header" value="${esc(h.k || '')}"
+        data-key="${p('h' + i + '-k')}" oninput="markRowDirty(this)">
+      <input type="text" placeholder="Value" value="${esc(h.v || '')}"
+        data-key="${p('h' + i + '-v')}" oninput="markRowDirty(this)" style="flex:1;">
+      <button class="btn small gray" title="Вставить плейсхолдер"
+        onclick="openPhModal(this.previousElementSibling)">🧩</button>
+      <button class="btn small danger edit-only"
+        onclick="reqRemoveHeader('action', ${ai}, ${i}, this)">✕</button>
+    </div>`).join('');
 
   const method = (req.method || 'GET').toUpperCase();
   const bodyType = req.body_type || 'none';
   const showBody = method === 'POST' && bodyType !== 'none';
 
   return `
-  <div class="form-row">
-  <input type="checkbox" ${req.enabled !== false ? 'checked' : ''}
-    data-key="${p('enabled')}" onchange="markRowDirty(this)">
-  <select data-key="${p('method')}" onchange="markRowDirty(this)">
-    <option value="GET"  ${method === 'GET' ? 'selected' : ''}>GET</option>
-    <option value="POST" ${method === 'POST' ? 'selected' : ''}>POST</option>
-  </select>
-  <input type="url" value="${esc(req.url || '')}" placeholder="http://..."
-    data-key="${p('url')}" oninput="markRowDirty(this)" style="flex:1;">
-  <button class="btn small gray" title="Вставить плейсхолдер"
-    onclick="openPhModal(this.previousElementSibling)">🧩</button>
-  <button class="btn small danger edit-only"
-    onclick="reqRemoveAction('action', ${ai}, this)">✕</button>
-</div>
+    <div class="req-box">
+      <div class="form-row">
+        <input type="checkbox" ${req.enabled !== false ? 'checked' : ''}
+          data-key="${p('enabled')}" onchange="markRowDirty(this)">
+        <select data-key="${p('method')}" onchange="markRowDirty(this)">
+          <option value="GET"  ${method === 'GET' ? 'selected' : ''}>GET</option>
+          <option value="POST" ${method === 'POST' ? 'selected' : ''}>POST</option>
+        </select>
+        <input type="url" value="${esc(req.url || '')}" placeholder="http://..."
+  data-key="${p('url')}" oninput="markRowDirty(this)"
+  style="flex: 1 1 320px; min-width: 180px;">
+        <button class="btn small gray" title="Вставить плейсхолдер"
+          onclick="openPhModal(this.previousElementSibling)">🧩</button>
+        <button class="btn small danger edit-only"
+          onclick="reqRemoveAction('action', ${ai}, this)">✕</button>
+      </div>
       ${method === 'POST' ? `
       <div class="form-row">
-  <label>Тело</label>
-  <select data-key="${p('body_type')}" onchange="markRowDirty(this)">
+        <label>Тело</label>
+        <select data-key="${p('body_type')}" onchange="markRowDirty(this)">
           <option value="none" ${bodyType === 'none' ? 'selected' : ''}>нет</option>
           <option value="json" ${bodyType === 'json' ? 'selected' : ''}>json</option>
           <option value="form" ${bodyType === 'form' ? 'selected' : ''}>form</option>
@@ -52,14 +54,14 @@ function requestBox(req, idx, actIdx) {
       </div>
       ${showBody ? `
       <div class="form-row" style="align-items:flex-start;">
-      <textarea placeholder='{"key":"value"} или a=1&b=2'
-        data-key="${p('body')}" oninput="markRowDirty(this)"
-        style="flex:1;min-height:44px;">${esc(req.body || '')}</textarea>
-      <button class="btn small gray" title="Вставить плейсхолдер"
-        onclick="openPhModal(this.previousElementSibling)">🧩</button>
-    </div>` : ''}
+        <textarea placeholder='{"key":"value"} или a=1&b=2'
+          data-key="${p('body')}" oninput="markRowDirty(this)"
+          style="flex:1;min-height:44px;">${esc(req.body || '')}</textarea>
+        <button class="btn small gray" title="Вставить плейсхолдер"
+          onclick="openPhModal(this.previousElementSibling)">🧩</button>
+      </div>` : ''}
       ` : ''}
-      <div style="font-size:.85rem;opacity:.75;margin-top:.2rem;">Заголовки:</div>
+      <div class="form-hint" style="margin-top:.2rem;">Заголовки:</div>
       ${headersHtml}
       <div><button class="btn small gray edit-only"
         onclick="reqAddHeader('action', ${ai}, this)">➕ заголовок</button></div>
@@ -71,9 +73,10 @@ function reqAddHeader(kind, actIdx, btn) {
   const existing = box.querySelectorAll('input[data-key$="-k"]').length;
   const line = document.createElement('div');
   line.className = 'form-row';
+  line.setAttribute('data-req-header', '1');
   line.innerHTML = `
     <input type="text" placeholder="Header" data-key="a${actIdx}-h${existing}-k" oninput="markRowDirty(this)">
-    <input type="text" placeholder="Value"  data-key="a${actIdx}-h${existing}-v" oninput="markRowDirty(this)" data-ph-target="1">
+    <input type="text" placeholder="Value"  data-key="a${actIdx}-h${existing}-v" oninput="markRowDirty(this)" data-ph-target="1" style="flex:1;">
     <button class="btn small gray" title="Вставить плейсхолдер"
       onclick="openPhModal(this.previousElementSibling)">🧩</button>
     <button class="btn small danger edit-only"
@@ -82,10 +85,14 @@ function reqAddHeader(kind, actIdx, btn) {
   wrap.parentElement.insertBefore(line, wrap);
   markRowDirty(btn);
 }
+
 function reqRemoveHeader(kind, actIdx, idx, btn) {
-  const line = btn.closest('.req-line'); if (line) line.remove();
+  // Раньше было btn.closest('.req-line') — теперь строки стали .form-row.
+  const line = btn.closest('.form-row') || btn.closest('.req-line');
+  if (line) line.remove();
   markRowDirty(btn);
 }
+
 function reqRemoveAction(kind, actIdx, btn) {
   const box = btn.closest('.req-box'); if (box) box.remove();
   markRowDirty(btn);
@@ -98,34 +105,34 @@ function eventMqttBox(pub, idx) {
   const p = (k) => `p${idx}-${k}`;
   return `
     <div class="req-box">
-    <div class="form-row">
-    <input type="checkbox" ${pub.enabled !== false ? 'checked' : ''}
-      data-key="${p('enabled')}" onchange="markRowDirty(this)">
-    <label>Топик</label>
-    <input type="text" value="${esc(pub.topic || '')}"
-      data-key="${p('topic')}" oninput="markRowDirty(this)"
-      placeholder="smarthome/..." style="flex:1;">
-    <button class="btn small gray" title="Вставить плейсхолдер"
-      onclick="openPhModal(this.previousElementSibling)">🧩</button>
-    <button class="btn small danger edit-only"
-      onclick="mqttRemovePub(this)">✕</button>
-  </div>
-  <div class="form-row" style="align-items:flex-start;">
-  <label>Payload</label>
-  <textarea data-key="${p('payload')}" oninput="markRowDirty(this)"
-    placeholder='{"event":"triggered"}'
-    style="flex:1;min-height:44px;">${esc(pub.payload || '')}</textarea>
-  <button class="btn small gray" title="Вставить плейсхолдер"
-    onclick="openPhModal(this.previousElementSibling)">🧩</button>
-</div>
-<div class="form-row">
-<label>retain</label>
-<input type="checkbox" ${pub.retain ? 'checked' : ''}
-  data-key="${p('retain')}" onchange="markRowDirty(this)">
-<label>QoS</label>
-<input type="number" min="0" max="2" value="${pub.qos || 0}"
-  data-key="${p('qos')}" onchange="markRowDirty(this)" style="min-width:60px;">
-</div>
+      <div class="form-row">
+        <input type="checkbox" ${pub.enabled !== false ? 'checked' : ''}
+          data-key="${p('enabled')}" onchange="markRowDirty(this)">
+        <label>Топик</label>
+        <input type="text" value="${esc(pub.topic || '')}"
+          data-key="${p('topic')}" oninput="markRowDirty(this)"
+          placeholder="smarthome/..." style="flex:1;">
+        <button class="btn small gray" title="Вставить плейсхолдер"
+          onclick="openPhModal(this.previousElementSibling)">🧩</button>
+        <button class="btn small danger edit-only"
+          onclick="mqttRemovePub(this)">✕</button>
+      </div>
+      <div class="form-row" style="align-items:flex-start;">
+        <label>Payload</label>
+        <textarea data-key="${p('payload')}" oninput="markRowDirty(this)"
+          placeholder='{"event":"triggered"}'
+          style="flex:1;min-height:44px;">${esc(pub.payload || '')}</textarea>
+        <button class="btn small gray" title="Вставить плейсхолдер"
+          onclick="openPhModal(this.previousElementSibling)">🧩</button>
+      </div>
+      <div class="form-row">
+        <label>retain</label>
+        <input type="checkbox" ${pub.retain ? 'checked' : ''}
+          data-key="${p('retain')}" onchange="markRowDirty(this)">
+        <label>QoS</label>
+        <input type="number" min="0" max="2" value="${pub.qos || 0}"
+          data-key="${p('qos')}" onchange="markRowDirty(this)" style="min-width:60px;">
+      </div>
     </div>`;
 }
 
@@ -154,9 +161,9 @@ function renderEvents() {
     return `
       <div class="row" data-id="${ev.id}">
         <div class="row-head">
-        <input type="text" value="${esc(ev.name || '')}"
-        data-key="name" oninput="markRowDirty(this)">
-          <label style="display:flex;align-items:center;gap:.4rem;font-size:.9rem;">
+          <input type="text" value="${esc(ev.name || '')}"
+            data-key="name" oninput="markRowDirty(this)" style="flex:1;">
+          <label class="form-row" style="margin:0;gap:.4rem;flex:0 0 auto;">
             <input type="checkbox" ${ev.enabled !== false ? 'checked' : ''}
               data-key="enabled" onchange="markRowDirty(this)"> вкл
           </label>
@@ -164,7 +171,7 @@ function renderEvents() {
           <button class="btn small danger edit-only" onclick="removeEvent('${ev.id}')">🗑</button>
         </div>
         <div class="row-body">
-          <div class="field-row">
+          <div class="form-row">
             <label>Источник</label>
             <select data-key="source_device"
                     onchange="rebuildFieldOptions(this); markRowDirty(this)">
@@ -186,7 +193,7 @@ function renderEvents() {
           <div><button class="btn small gray edit-only" onclick="addEventReq('${ev.id}')">➕ добавить запрос</button></div>
 
           <div class="hr"></div>
-          <div style="font-size:.9rem;opacity:.85;">MQTT-публикации при срабатывании:</div>
+          <div class="form-hint" style="font-size:.9rem;">MQTT-публикации при срабатывании:</div>
           ${pubsHtml}
           <div><button class="btn small gray edit-only" onclick="addEventPub('${ev.id}')">➕ добавить MQTT-публикацию</button></div>
         </div>
@@ -281,7 +288,7 @@ function openPhModal(targetEl) {
     body.innerHTML = '<div class="empty">Нет устройств</div>';
   } else {
     body.innerHTML = `
-      <div style="font-size:.9rem; opacity:.85; margin-bottom:.6rem;">
+      <div class="form-hint" style="margin-bottom:.6rem;">
         Выберите устройство и поле — они будут вставлены в поле ввода
       </div>
       ${devices.map(([did, info]) => `
