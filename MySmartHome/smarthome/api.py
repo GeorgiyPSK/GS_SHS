@@ -2682,5 +2682,14 @@ def telegram_status():
             "error": str(e),
         })
 
-
+@api.route("/knx/refresh", methods=["POST"])
+def knx_refresh():
+    """Перестроить подписки KNX после изменения полей/привязок."""
+    try:
+        import knx_client
+        knx_client.refresh_subscriptions()
+    except Exception as e:
+        log.warning("[knx] refresh_subscriptions error: %s", e)
+        return jsonify({"ok": False, "error": str(e)}), 500
+    return jsonify({"ok": True})
 
