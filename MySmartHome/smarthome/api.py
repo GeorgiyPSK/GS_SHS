@@ -2394,7 +2394,137 @@ def api_telegram_test():
         return jsonify({"ok": False, "bot": bot, "error": sent.get("error")})
     return jsonify({"ok": True, "bot": bot})
 
+# ============================================================
+# Статусы соединений для индикаторов в шапке
+# ============================================================
 
+@api.route("/modbus/status", methods=["GET"])
+def modbus_status():
+    """
+    Возвращает:
+      enabled        — включён ли опрос (по факту: есть ли устройства с modbus.enabled)
+      devices_total  — сколько устройств с modbus.enabled
+      devices_failed — сколько из них последний раз прочитались с ошибкой
+    """
+    total = 0
+    failed = 0
+
+    # 1) Считаем устройства, у которых включён modbus
+    for dev in state["devices"].values():
+        m = dev.get("modbus") or {}
+        if not m.get("enabled"):
+            continue
+        total += 1
+
+        # 2) Проверяем «последний результат» — если modbus_client
+        #    умеет отдавать статистику, берём оттуда.
+        #    Иначе смотрим на поле last_modbus_error в самом устройстве.
+        try:
+            import modbus_client
+            info = modbus_client.device_status(dev["id"])  # см. п.2 ниже
+            if info.get("ok") is False:
+                failed += 1
+        except Exception:
+            if dev.get("last_modbus_error"):
+                failed += 1
+
+    return jsonify({
+        "enabled": total > 0,
+        "devices_total": total,
+        "devices_failed": failed,
+        "poll_ms": state["settings"].get("modbus_poll_ms", 2000),
+    })
+
+
+@api.route("/z2m/status", methods=["GET"])
+def z2m_status():
+    """
+    Возвращает:
+      enabled              — включён ли Z2M (settings.zigbee2mqtt.enabled)
+      mqtt_connected       — подключён ли MQTT-клиент (Z2M работает через MQTT)
+      mqtt_bridge_online   — пришёл ли retained-топик bridge/state = online
+      devices_count        — сколько устройств у нас помечено z2m_name
+    """
+    cfg = (state.get("settings") or {}).get("zigbee2mqtt") or {}
+    enabled = bool(cfg.get("enabled"))
+
+    mqtt_connected = False
+    try:
+        import mqtt_client
+        mqtt_connected = bool(mqtt_client.is_connected())
+    except Exception:
+        pass
+
+    bridge_online = False
+    try:
+        import zigbee2mqtt as z2m_mod
+        # если в модуле есть функция bridge_online() — используем её
+        if hasattr(z2m_mod, "bridge_online"):
+            bridge_online = bool(z2m_mod.bridge_online())
+        else:
+            # иначе смотрим на retained-кэш bridge/devices
+            cache = z2m_mod.get_cached_bridge_devices() or []
+            # и на bridge/state, если модуль хранит его отдельно
+            bridge_online = bool(getattr(z2m_mod, "_bridge_online", False))
+    except Exception:
+        pass
+
+    devices_count = sum(
+        1 for d in state["devices"].values() if d.get("z2m_name")
+    )
+
+    return jsonify({
+        "enabled": enabled,
+        "mqtt_connected": mqtt_connected,
+        "mqtt_bridge_online": bridge_online,
+        "devices_count": devices_count,
+    })
+
+
+@api.route("/telegram/status", methods=["GET"])
+def telegram_status():
+    """
+    Возвращает:
+      enabled  — settings.telegram.enabled
+      ok       — прошёл ли getMe() (значит, токен и сеть в порядке)
+      username — имя бота, если ok
+      error    — текст ошибки, если не ok
+    """
+    tg = (state.get("settings") or {}).get("telegram") or {}
+    enabled = bool(tg.get("enabled"))
+
+    if not enabled:
+        return jsonify({"enabled": False, "ok": False})
+
+    if not tg.get("bot_token"):
+        return jsonify({
+            "enabled": True,
+            "ok": False,
+            "error": "bot_token не задан",
+        })
+
+    # Пробуем лёгкий ping через уже существующую функцию в lua_engine
+    try:
+        import lua_engine
+        me = lua_engine._api_telegram_me()
+        if me.get("ok"):
+            bot = me.get("result") or {}
+            return jsonify({
+                "enabled": True,
+                "ok": True,
+                "username": bot.get("username"),
+            })
+        return jsonify({
+            "enabled": True,
+            "ok": False,
+            "error": me.get("error") or "getMe failed",
+        })
+    except Exception as e:
+        return jsonify({
+            "enabled": True,
+            "ok": False,
+            "error": str(e),
+        })
 
 
 
