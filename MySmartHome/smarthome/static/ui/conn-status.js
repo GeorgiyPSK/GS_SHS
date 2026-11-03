@@ -77,7 +77,6 @@
           return;
         }
       
-        
         // 2) библиотека установлена?
         if (j.available === false) {
           connSetState('mqtt', 'off',
