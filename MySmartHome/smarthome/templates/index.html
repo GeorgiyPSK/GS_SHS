@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='lua.css') }}">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='ui/conn-status.js') }}"></script>
 </head>
 <body>
 
@@ -17,6 +18,14 @@
 <div class="header">
   <div id="date"></div>
   <div id="time"></div>
+   <!-- 🔌 Индикаторы соединений -->
+  <div id="conn-status" class="conn-status" title="Состояние соединений">
+    <span class="conn-pill" id="conn-mqtt"    data-state="unknown" title="MQTT">📡 MQTT</span>
+    <span class="conn-pill" id="conn-knx"     data-state="unknown" title="KNX/IP">🔗 KNX</span>
+    <span class="conn-pill" id="conn-modbus"  data-state="unknown" title="Modbus">🔌 Modbus</span>
+    <span class="conn-pill" id="conn-z2m"     data-state="unknown" title="Zigbee2MQTT">🐝 Z2M</span>
+    <span class="conn-pill" id="conn-telegram" data-state="unknown" title="Telegram">✈️ TG</span>
+  </div>
   <div class="tools">
     <div class="mode-switch">
       <button id="mode-user" class="active" onclick="setMode('user')">👁 Просмотр</button>
