@@ -490,6 +490,14 @@ def devices_set_state(did):
                 )
             except Exception as e:
                 log.warning("[api] event_bus error: %s", e)
+
+            # → BACnet: толкнуть значение в объект устройства
+            try:
+                import bacnet_server
+                bacnet_server.update_value(f"{did}:{k}", v)
+            except Exception as e:
+                log.debug("[api] bacnet update error: %s", e)
+
         run_all_scenarios()
 
         # Zigbee2MQTT: если у устройства есть z2m_name — публикуем в /set
@@ -2770,3 +2778,182 @@ def bacnet_publish(addr):
         log.info("[bacnet] rebuild error: %s", e)
     return jsonify(rec)
 
+from flask import request, jsonify
+
+@api.route("/mqtt/topics", methods=["GET"])
+def mqtt_topics():
+    """Список всех MQTT-топиков проекта (включая автоматические)."""
+    result = []
+    seen = set()
+
+    # базовый топик из настроек (по умолчанию "smarthome")
+    mqtt_cfg = state.get("mqtt") or {}
+    base = (mqtt_cfg.get("base_topic") or "smarthome").rstrip("/")
+
+    import mqtt_client
+
+    for did, dev in state["devices"].items():
+        mqtt = dev.get("mqtt") or {}
+        sub_raw = (mqtt.get("sub_topic") or "").strip()
+        st_raw  = (mqtt.get("state_topic") or "").strip()
+
+        # ---- sub_topic ----
+        if sub_raw:
+            sub_topic = mqtt_client._resolve_topic(sub_raw, did)
+            sub_role = "sub"
+        else:
+            # автоматический sub: <base>/<id>/+/set
+            sub_topic = f"{base}/{did}/+/set"
+            sub_role = "sub (auto)"
+
+        # ---- state_topic ----
+        if st_raw:
+            st_topic = mqtt_client._resolve_topic(st_raw, did)
+            st_role = "state"
+        else:
+            # дефолтный state: <base>/<id>/state
+            st_topic = mqtt_client._default_state_topic(did)
+            st_role = "state (auto)"
+
+        for topic, role in ((sub_topic, sub_role), (st_topic, st_role)):
+            if not topic or (topic, did) in seen:
+                continue
+            seen.add((topic, did))
+
+            # текущее значение — первое поле устройства
+            field_name = ""
+            value = None
+            if dev.get("state"):
+                field_name = next(iter(dev["state"]))
+                value = dev["state"][field_name]
+
+            # BACnet-привязка
+            bacnet_info = _mqtt_bacnet_lookup(topic) or {}
+
+            result.append({
+                "id": f"{did}:{role}:{topic}",
+                "topic": topic,
+                "role": role,                  # "sub" | "state" | "sub (auto)" | "state (auto)"
+                "is_auto": role.endswith("(auto)"),
+                "device_id": did,
+                "device_name": dev.get("name") or "",
+                "field_name": field_name,
+                "value": value,
+                "bacnet_linked": bool(bacnet_info),
+                "bacnet_object": bacnet_info.get("object"),
+            })
+
+    return jsonify(result)
+
+@api.route("/mqtt/publish", methods=["POST"])
+def mqtt_publish():
+    """Ручная публикация в топик (для кнопки «→»)."""
+    body = request.get_json(silent=True) or {}
+    topic = (body.get("topic") or "").strip()
+    payload = body.get("payload")
+    if not topic:
+        return jsonify({"error": "topic required"}), 400
+
+    import mqtt_client
+    ok = mqtt_client.publish_raw(topic, payload, retain=False, qos=0)
+    return jsonify({"ok": bool(ok), "topic": topic})
+
+@api.route("/mqtt/bacnet_link", methods=["GET", "POST"])
+def mqtt_bacnet_link():
+    """Привязка MQTT-топика к BACnet-объекту."""
+    links = state.setdefault("mqtt_bacnet_links", {})
+
+    if request.method == "POST":
+        body = request.get_json(silent=True) or {}
+        topic = (body.get("topic") or "").strip()
+        if not topic:
+            return jsonify({"error": "topic required"}), 400
+
+        if body.get("unlink"):
+            links.pop(topic, None)
+        else:
+            links[topic] = {
+                "object": body.get("object") or "",
+                "type": body.get("type") or "AV",
+                "instance": int(body.get("instance") or 0),
+                "device_id": body.get("device_id") or "",
+                "field": body.get("field") or "",
+            }
+        save_state()
+
+        # Пересобрать BACnet-объекты — БЕЗ перезапуска BAC0,
+        # только удалить/добавить объекты в работающем приложении.
+        try:
+            import bacnet_server
+            bacnet_server._rebuild_objects()
+        except Exception as e:
+            log.info("[mqtt/bacnet_link] rebuild error: %s", e)
+
+        return jsonify({"ok": True, "links": links})
+
+    return jsonify(links)
+
+
+def _mqtt_bacnet_lookup(topic: str):
+    links = state.get("mqtt_bacnet_links") or {}
+    return links.get(topic)
+
+@api.route("/devices/<did>/bacnet", methods=["GET", "POST"])
+def device_bacnet(did):
+    """
+    Управление BACnet-объектами для полей устройства.
+    GET — возвращает текущие привязки (только этого устройства).
+    POST — обновляет привязки (можно передать несколько полей сразу).
+
+    Формат POST:
+      {
+        "fields": {
+           "temp":   {"published": true, "type": "AV", "instance": 100},
+           "status": {"published": false}
+        }
+      }
+    Привязки хранятся в state["bacnet_device_links"] = {
+       "<did>": { "<field>": {"type": "AV"|"BV", "instance": N, "object": "AV,N"} }
+    }
+    """
+    dev = state["devices"].get(did)
+    if not dev:
+        return jsonify({"error": "not found"}), 404
+
+    all_links = state.setdefault("bacnet_device_links", {})
+    dev_links = all_links.setdefault(did, {})
+
+    if request.method == "POST":
+        body = request.get_json(silent=True) or {}
+        new_fields = body.get("fields") or {}
+
+        for fname, spec in new_fields.items():
+            if not isinstance(spec, dict):
+                continue
+            if not spec.get("published"):
+                dev_links.pop(fname, None)
+                continue
+            obj_type = (spec.get("type") or "AV").upper()
+            if obj_type not in ("AV", "BV"):
+                obj_type = "AV"
+            instance = int(spec.get("instance") or 0)
+            if instance <= 0:
+                continue
+            dev_links[fname] = {
+                "type": obj_type,
+                "instance": instance,
+                "object": f"{obj_type},{instance}",
+            }
+
+        save_state()
+
+        # пересобрать BACnet-объекты
+        try:
+            import bacnet_server
+            bacnet_server._rebuild_objects()
+        except Exception as e:
+            log.info("[device/bacnet] rebuild error: %s", e)
+
+        return jsonify({"ok": True, "links": dev_links})
+
+    return jsonify(dev_links)
