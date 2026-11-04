@@ -26,12 +26,15 @@
     <span class="conn-pill" id="conn-modbus"  data-state="unknown" title="Modbus">🔌 Modbus</span>
     <span class="conn-pill" id="conn-z2m"     data-state="unknown" title="Zigbee2MQTT">🐝 Z2M</span>
     <span class="conn-pill" id="conn-telegram" data-state="unknown" title="Telegram">✈️ TG</span>
+    <span class="conn-pill" id="conn-bacnet"  data-state="unknown" title="BACnet/IP">🌐 BACnet</span>
   </div>
   <div class="tools">
     <div class="mode-switch">
       <button id="mode-user" class="active" onclick="setMode('user')">👁 Просмотр</button>
       <button id="mode-edit" class="edit"  onclick="setMode('edit')">✏️ Настройка</button>
       <button class="icon-btn" id="pause-btn" onclick="toggleRefreshPause()" title="Пауза автообновления">⏸</button>
+      <!-- Новая кнопка перезапуска -->
+      <button class="icon-btn" id="restart-btn" onclick="restartServerFromHeader()" title="Перезапустить сервер">♻️</button>
       <a href="/logout" class="icon-btn" title="Выйти" style="text-decoration:none;">Выйти🚪</a>
     </div>
   </div>
@@ -40,6 +43,36 @@
 <!-- ============================================================
      Модалки
      ============================================================ -->
+
+<!-- Модалка: объекты BACnet -->
+<div class="modal-overlay" id="bacnet-objects-overlay"
+     onclick="if (event.target === this) closeBacnetObjectsModal()">
+  <div class="modal" style="max-width:1100px; width:100%;">
+    <button class="modal-close" onclick="closeBacnetObjectsModal()" title="Закрыть">✕</button>
+    <div style="padding:1.2rem; display:flex; flex-direction:column; gap:.6rem; max-height:85vh;">
+
+      <div style="display:flex; align-items:center; gap:.6rem; flex-wrap:wrap;">
+        <h3 style="margin:0;">📋 Объекты BACnet</h3>
+        <span id="bacnet-objects-count"
+              style="font-size:.85rem; opacity:.7;"></span>
+              <input type="text" id="bacnet-objects-search"
+              class="form-control"
+              placeholder="🔍 поиск по адресу, имени, object id…"
+              oninput="renderBacnetObjectsTable()"
+              style="margin-left:auto; width:280px; max-width:100%;">
+      </div>
+
+      <div id="bacnet-objects-body"
+           style="flex:1; overflow-y:auto;">
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:.5rem;">
+        <button class="btn gray" onclick="closeBacnetObjectsModal()">Закрыть</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Модалка: выбор устройства для привязки GA -->
 <div class="modal-overlay" id="pick-device-overlay"
      onclick="if (event.target === this) closePickKnxDevice()">
@@ -483,11 +516,12 @@
       <div class="mqtt-field mqtt-actions" style="flex-direction:row;gap:.5rem;">
         <button onclick="saveBacnetSettings()">💾 Сохранить</button>
         <button class="btn gray" onclick="loadBacnetSettings()">🔄 Обновить</button>
+        <button class="btn gray" onclick="openBacnetObjectsModal()">📋 Объекты BACnet</button>
       </div>
     </div>
   
     <div id="bacnet-status-line" style="opacity:.8;font-size:.9rem;"></div>
-    <div id="bacnet-published-list" style="font-family:monospace;font-size:.85rem;margin-top:.5rem;"></div>
+    
   </div>
 
   <!-- ============ KNX-адреса ============ -->
