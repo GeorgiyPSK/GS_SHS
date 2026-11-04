@@ -342,13 +342,13 @@ function renderCard(d) {
       ${controls}
 
       ${currentMode === 'edit' ? `
-        <div style="margin-top:.5rem; font-size:.85rem;">
-          Комната:
-          <select onchange="setDeviceRoom('${d.id}', this.value)" style="margin-left:.3rem;">
-            <option value="">— без комнаты —</option>
-            ${roomOptions}
-          </select>
-        </div>
+      <div class="field-row" style="margin-top:.5rem; font-size:.85rem;">
+        <label>Комната:</label>
+        <select onchange="setDeviceRoom('${d.id}', this.value)" style="flex:1;">
+          <option value="">— без комнаты —</option>
+          ${roomOptions}
+        </select>
+      </div>
         <div style="margin-top:.5rem; font-size:.8rem;">
           <div style="opacity:.8; margin-bottom:.3rem;">Показывать также на планах:</div>
           ${roomsCache.map(r => `
@@ -453,8 +453,9 @@ function renderCard(d) {
             <button class="btn small gray" onclick="readDeviceKnx('${d.id}')">🔄 Прочитать с шины</button>
           </div>
         </details>` : ''}
-        ${renderBacnetEditor(d)}
+       
       ${currentMode === 'edit' ? `
+      ${renderBacnetEditor(d)}
         <details style="margin-top:.6rem; font-size:.75rem; opacity:.85;">
           <summary style="cursor:pointer; user-select:none;">🔌 Modbus</summary>
           <div class="knx-form" style="margin-top:.4rem;">
@@ -975,23 +976,6 @@ function devFieldsFirst(d) {
   return s[0] || '';
 }
 
-function devFieldsFirst(d) {
-  const lg = d.logging || {};
-  const lgFields = Array.isArray(lg.fields) ? lg.fields : [];
-  if (lg.enabled && lgFields.length) return lgFields[0];
-  const knx = d.knx || {};
-  if (knx.enabled && knx.fields) {
-    const k = Object.keys(knx.fields)[0];
-    if (k) return k;
-  }
-  const mb = d.modbus || {};
-  if (mb.enabled && mb.fields) {
-    const m = Object.keys(mb.fields)[0];
-    if (m) return m;
-  }
-  const s = Object.keys(d.state || {});
-  return s[0] || '';
-}
 
 /* ============================================================
    Карточка устройства в режиме просмотра (user)
