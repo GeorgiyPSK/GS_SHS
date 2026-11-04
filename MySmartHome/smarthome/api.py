@@ -494,19 +494,10 @@ def devices_set_state(did):
             # → BACnet: толкнуть значение в объект устройства
             try:
                 import bacnet_server
+                log.info("[api] вызываю bacnet_server.update_value для %s:%s = %r", did, k, v)
                 bacnet_server.update_value(f"{did}:{k}", v)
             except Exception as e:
-                log.debug("[api] bacnet update error: %s", e)
-
-        run_all_scenarios()
-
-        # Zigbee2MQTT: если у устройства есть z2m_name — публикуем в /set
-        if dev.get("z2m_name"):
-            try:
-                import mqtt_client
-                mqtt_client._publish_z2m_command(dev, changed)
-            except Exception as e:
-                log.info("[api] Z2M publish error:%s", e)
+                log.warning("[api] bacnet update error: %s", e)
 
     return jsonify(dev)
 
@@ -2801,47 +2792,70 @@ def mqtt_topics():
         if sub_raw:
             sub_topic = mqtt_client._resolve_topic(sub_raw, did)
             sub_role = "sub"
+            sub_is_auto = False
         else:
-            # автоматический sub: <base>/<id>/+/set
             sub_topic = f"{base}/{did}/+/set"
-            sub_role = "sub (auto)"
+            sub_role = "sub"
+            sub_is_auto = True
 
         # ---- state_topic ----
         if st_raw:
             st_topic = mqtt_client._resolve_topic(st_raw, did)
             st_role = "state"
+            st_is_auto = False
         else:
-            # дефолтный state: <base>/<id>/state
             st_topic = mqtt_client._default_state_topic(did)
-            st_role = "state (auto)"
+            st_role = "state"
+            st_is_auto = True
 
-        for topic, role in ((sub_topic, sub_role), (st_topic, st_role)):
-            if not topic or (topic, did) in seen:
-                continue
-            seen.add((topic, did))
+        # Перебираем все поля устройства
+        state_fields = list((dev.get("state") or {}).keys())
+        if not state_fields:
+            state_fields = [""]
 
-            # текущее значение — первое поле устройства
-            field_name = ""
-            value = None
-            if dev.get("state"):
-                field_name = next(iter(dev["state"]))
-                value = dev["state"][field_name]
+        for field_name in state_fields:
+            value = (dev.get("state") or {}).get(field_name) if field_name else None
 
-            # BACnet-привязка
-            bacnet_info = _mqtt_bacnet_lookup(topic) or {}
+            for topic, role, is_auto in ((sub_topic, sub_role, sub_is_auto), (st_topic, st_role, st_is_auto)):
+                if not topic:
+                    continue
 
-            result.append({
-                "id": f"{did}:{role}:{topic}",
-                "topic": topic,
-                "role": role,                  # "sub" | "state" | "sub (auto)" | "state (auto)"
-                "is_auto": role.endswith("(auto)"),
-                "device_id": did,
-                "device_name": dev.get("name") or "",
-                "field_name": field_name,
-                "value": value,
-                "bacnet_linked": bool(bacnet_info),
-                "bacnet_object": bacnet_info.get("object"),
-            })
+                # Формируем читаемый топик, заменяя + на имя поля
+                readable_topic = topic
+                if is_auto and "+" in topic and field_name:
+                    readable_topic = topic.replace("+", field_name)
+                
+                # Для state auto топик не содержит +, но нам нужно добавить поле, 
+                # если у устройства несколько полей, чтобы строки не дублировались
+                if role == "state" and is_auto:
+                    if len(state_fields) > 1 and field_name:
+                        readable_topic = f"{topic}/{field_name}"
+                    # Если поле одно, оставляем как есть (например, smarthome/eb890278/state)
+
+                if (readable_topic, did, field_name) in seen:
+                    continue
+                seen.add((readable_topic, did, field_name))
+
+                # BACnet-привязка
+                bacnet_info = _mqtt_bacnet_lookup(topic) or {}
+
+                row_id = f"{did}:{role}:{readable_topic}"
+                if field_name:
+                    row_id += f":{field_name}"
+
+                result.append({
+                    "id": row_id,
+                    "topic": readable_topic,        # <-- Отдаем читаемый топик
+                    "raw_topic": topic,             # <-- Оригинальный топик с +
+                    "role": role,
+                    "is_auto": is_auto,
+                    "device_id": did,
+                    "device_name": dev.get("name") or "",
+                    "field_name": field_name,
+                    "value": value,
+                    "bacnet_linked": bool(bacnet_info),
+                    "bacnet_object": bacnet_info.get("object"),
+                })
 
     return jsonify(result)
 
