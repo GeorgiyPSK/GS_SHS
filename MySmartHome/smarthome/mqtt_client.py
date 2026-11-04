@@ -16,6 +16,7 @@ from events import trigger_events
 from scenarios import run_all_scenarios
 import logging
 log = logging.getLogger("smarthome.mqtt")
+
 # Глобальный клиент и статус
 _client = None
 _client_lock = threading.Lock()
@@ -133,14 +134,42 @@ def _on_message(client, userdata, msg):
         log.info("[mqtt] bad message:%s", e)
         return
 
-    # KNX-мост
+    # ------------------------------------------------------------------
+    # MQTT -> BACnet
+    # Если топик привязан к BACnet-объекту через /api/mqtt/bacnet_link,
+    # толкаем новое значение в presentValue.
+    # ------------------------------------------------------------------
+    try:
+        import bacnet_server
+        links = state.get("mqtt_bacnet_links") or {}
+        if topic in links:
+            link = links[topic] or {}
+            dev_id = link.get("device_id") or ""
+            field  = link.get("field") or ""
+            dev = state["devices"].get(dev_id) if dev_id else None
+            if dev and dev.get("state") and field in dev["state"]:
+                bacnet_server.update_value(topic, dev["state"][field])
+            else:
+                log.debug(
+                    "[mqtt] bacnet_link: %s -> device %r field %r not found",
+                    topic, dev_id, field,
+                )
+    except Exception as e:
+        log.debug("[mqtt] bacnet update error: %s", e)
+
+    # ------------------------------------------------------------------
+    # KNX-мост (если включён): перехватываем топики knx/#.
+    # ------------------------------------------------------------------
     try:
         from knx_client import handle_knx_message
         if handle_knx_message(topic, payload):
             return
     except Exception as e:
         log.warning("[mqtt] knx handler error: %s", e)
-    # === event_bus: MQTT-сообщение ===
+
+    # ------------------------------------------------------------------
+    # event_bus: MQTT-сообщение (для Lua-скриптов и т.п.)
+    # ------------------------------------------------------------------
     try:
         import event_bus
         event_bus.publish(
@@ -155,18 +184,27 @@ def _on_message(client, userdata, msg):
         )
     except Exception as e:
         log.warning("[mqtt] event_bus error: %s", e)
-    # 1) триггеры сценариев по MQTT
+
+    # ------------------------------------------------------------------
+    # 1) Триггеры сценариев по MQTT
+    # ------------------------------------------------------------------
     _check_mqtt_triggers(topic, payload)
 
-    # 2) команда <base>/<id>/<field>/set
+    # ------------------------------------------------------------------
+    # 2) Командный топик <base>/<id>/<field>/set
+    # ------------------------------------------------------------------
     if _handle_command_topic(topic, payload):
         return
 
-    # 3) Zigbee2MQTT
+    # ------------------------------------------------------------------
+    # 3) Zigbee2MQTT (state / availability / bridge/devices)
+    # ------------------------------------------------------------------
     if _handle_zigbee2mqtt_message(topic, payload):
         return
 
-    # 4) иначе ищем устройства по sub_topic
+    # ------------------------------------------------------------------
+    # 4) Обычные подписки — ищем устройства по sub_topic
+    # ------------------------------------------------------------------
     matched = []
     for did, dev in state["devices"].items():
         raw = (dev.get("mqtt") or {}).get("sub_topic") or ""
@@ -174,13 +212,14 @@ def _on_message(client, userdata, msg):
             continue
         if _resolve_topic(raw, did) == topic:
             matched.append(did)
-    log.info("[mqtt] matched by sub_topic:%s", matched)
+    log.info("[mqtt] matched by sub_topic: %s", matched)
     if not matched:
         log.info("[mqtt] no device for topic %s", topic)
         return
 
     for did in matched:
         _handle_device_message(did, topic, payload)
+
 
 def _handle_zigbee2mqtt_message(topic, payload):
     """Обрабатывает топики Zigbee2MQTT: state и availability."""
@@ -190,7 +229,6 @@ def _handle_zigbee2mqtt_message(topic, payload):
 
     base = (z2m.get("base_topic") or "zigbee2mqtt").rstrip("/")
 
-    # bridge/devices — служебный топик со списком устройств
     if topic == f"{base}/bridge/devices":
         try:
             import zigbee2mqtt as z2m_mod
@@ -199,18 +237,16 @@ def _handle_zigbee2mqtt_message(topic, payload):
             log.info("[z2m] bridge/devices handler:", e)
         return True
 
-    # availability: <base>/<name>/availability
     prefix_av = base + "/"
     if topic.startswith(prefix_av) and topic.endswith("/availability"):
         name = topic[len(prefix_av):-len("/availability")]
         _handle_z2m_availability(name, payload)
         return True
 
-    # state: <base>/<name>
     if topic.startswith(prefix_av):
         rest = topic[len(prefix_av):]
         if "/" in rest:
-            return False          # это /set, /availability, /get и т.п.
+            return False
         _handle_z2m_state(rest, payload)
         return True
 
@@ -223,9 +259,8 @@ def _find_device_by_z2m_name(name):
             return dev
     return None
 
+
 def _z2m_to_ours(dev, z2m_field):
-    """Сопоставляет имя поля из Z2M с именем поля в state устройства.
-    Учитывает тип устройства (light → on, curtain → open)."""
     dtype = (dev.get("type") or "").lower()
 
     common = {
@@ -250,7 +285,6 @@ def _z2m_to_ours(dev, z2m_field):
     if z2m_field == "state":
         if dtype == "curtain":
             return "open"
-        # light, light_switch, fan, switch → on
         return "on"
 
     if z2m_field == "contact":
@@ -258,16 +292,14 @@ def _z2m_to_ours(dev, z2m_field):
 
     return z2m_field
 
+
 def _handle_z2m_state(name, payload):
-    """Обрабатывает состояние устройства от Zigbee2MQTT.
-    Мапит поля Z2M на наши, приводит значения, уведомляет SSE,
-    запускает триггеры и сценарии."""
+    """Обрабатывает состояние устройства от Zigbee2MQTT."""
     dev = _find_device_by_z2m_name(name)
     if not dev:
         log.info(f"[mqtt] Z2M: нет устройства с z2m_name = {name!r}")
         return
 
-    # парсим JSON
     try:
         data = json.loads(payload)
     except (ValueError, TypeError):
@@ -276,19 +308,15 @@ def _handle_z2m_state(name, payload):
         log.info(f"[mqtt] Z2M: payload не dict: {type(data).__name__}")
         return
 
-    dtype = (dev.get("type") or "").lower()
     dev_state = dev.setdefault("state", {})
     changed = {}
 
     for z2m_k, v in data.items():
         our_k = _z2m_to_ours(dev, z2m_k)
 
-        # --- преобразование значений ---
         if z2m_k == "state" and isinstance(v, str):
-            # "ON"/"OFF" → bool
             v = v.upper() == "ON"
         elif z2m_k == "contact":
-            # contact=true → закрыто → open=false
             v = not bool(v)
         elif z2m_k == "system_mode":
             v = "heat" if v == "heat" else "cool"
@@ -297,16 +325,13 @@ def _handle_z2m_state(name, payload):
         elif z2m_k == "occupancy":
             v = bool(v)
 
-        # --- записываем в state ---
         if our_k in dev_state:
             dev_state[our_k] = _coerce_value(dev_state[our_k], v)
         else:
-            # неизвестное поле: создаём как есть
             dev_state[our_k] = v
 
         changed[our_k] = dev_state[our_k]
 
-    # служебные поля Z2M — не в state, а в отдельные ключи устройства
     if "linkquality" in data:
         dev["z2m_linkquality"] = data["linkquality"]
 
@@ -315,7 +340,6 @@ def _handle_z2m_state(name, payload):
     save_state()
 
     if changed:
-        # === event_bus: изменения устройств из Z2M ===
         try:
             import event_bus
             for k, v in changed.items():
@@ -328,14 +352,21 @@ def _handle_z2m_state(name, payload):
                 )
         except Exception as e:
             log.warning("[mqtt] event_bus error: %s", e)
-        # SSE — мгновенное обновление UI
+
+        # BACnet
+        try:
+            import bacnet_server
+            for k, v in changed.items():
+                bacnet_server.update_value(f"{dev['id']}:{k}", v)
+        except Exception as e:
+            log.debug("[mqtt] bacnet update error: %s", e)
+
         try:
             from api import notify_state_changed
             notify_state_changed()
         except Exception:
             pass
 
-        # события и сценарии
         for k, v in changed.items():
             try:
                 trigger_events(dev["id"], k, v)
@@ -363,6 +394,7 @@ def _handle_z2m_availability(name, payload):
     save_state()
     log.info(f"[mqtt] Z2M availability {name}: {'online' if online else 'offline'}")
 
+
 def _handle_command_topic(topic, payload):
     """Разбирает топик <base>/<device_id>/<field>/set."""
     base = (state["mqtt"].get("base_topic") or "smarthome").rstrip("/")
@@ -382,12 +414,12 @@ def _handle_command_topic(topic, payload):
         log.info("[mqtt] command: device not found:%s", did)
         return True
     if field not in dev["state"]:
-        log.info("[mqtt] command: unknown field %s", field, "for %s", did)
+        log.info("[mqtt] command: unknown field %s for %s", field, did)
         return True
 
     value = _coerce_value(dev["state"][field], payload)
 
-    # Специальная обработка кнопки — автосброс
+    # Кнопка — автосброс
     if dev.get("type") == "button" and field == "pressed":
         want_bool = value if isinstance(value, bool) else (
             str(value).strip().lower() in ("1", "true", "yes", "on", "вкл", "да", "+")
@@ -401,6 +433,13 @@ def _handle_command_topic(topic, payload):
                 dev["state"]["pressed"] = False
                 dev["updated"] = datetime.now().isoformat(timespec="seconds")
                 save_state()
+
+                try:
+                    import bacnet_server
+                    bacnet_server.update_value(f"{did}:pressed", False)
+                except Exception:
+                    pass
+
                 trigger_events(did, "pressed", False)
                 run_all_scenarios()
                 publish_device_state(did)
@@ -418,6 +457,7 @@ def _handle_command_topic(topic, payload):
     dev["state"][field] = value
     dev["updated"] = datetime.now().isoformat(timespec="seconds")
     save_state()
+
     try:
         import event_bus
         event_bus.publish(
@@ -429,18 +469,28 @@ def _handle_command_topic(topic, payload):
         )
     except Exception as e:
         log.warning("[mqtt] event_bus error: %s", e)
+
+    # BACnet
+    try:
+        import bacnet_server
+        bacnet_server.update_value(f"{did}:{field}", value)
+    except Exception:
+        pass
+
     trigger_events(did, field, value)
     run_all_scenarios()
     publish_device_state(did)
-    log.info("[mqtt] command ok:%s", did, field, "=%s", value)
-    # Zigbee2MQTT: если устройство привязано к Z2M — публикуем в /set
+    log.info("[mqtt] command ok: %s.%s = %r", did, field, value)
+
     if dev.get("z2m_name"):
         try:
             _publish_z2m_command(dev, {field: value})
         except Exception as e:
-            log.info("[mqtt] Z2M publish error:%s", e)    
+            log.info("[mqtt] Z2M publish error:%s", e)
+
     return True
-    
+
+
 # маппинг наших полей в поля Z2M
 Z2M_FIELD_MAP = {
     "on":         ("state",      lambda v: "ON" if v else "OFF"),
@@ -451,6 +501,7 @@ Z2M_FIELD_MAP = {
     "mode":       ("system_mode", lambda v: "heat" if v == "heat" else "cool"),
     "speed":      ("fan_mode",   lambda v: int(v)),
 }
+
 
 def _publish_z2m_command(dev, patch: dict):
     """Публикует JSON в zigbee2mqtt/<z2m_name>/set."""
@@ -470,6 +521,7 @@ def _publish_z2m_command(dev, patch: dict):
         log.info(f"[mqtt] Z2M -> {topic}: {payload}")
     except Exception as e:
         log.info("[mqtt] Z2M publish error:%s", e)
+
 
 def _handle_device_message(did, topic, payload):
     dev = state["devices"].get(did)
@@ -497,7 +549,6 @@ def _handle_device_message(did, topic, payload):
             if len(fields) == 1:
                 changed[fields[0]] = _coerce_value(dev["state"][fields[0]], payload)
 
-    # Обрезка текста по width
     if dev.get("type") == "text" and "text" in changed:
         try:
             w = int(dev["state"].get("width") or 0)
@@ -506,7 +557,6 @@ def _handle_device_message(did, topic, payload):
         except (TypeError, ValueError):
             pass
 
-    # Кнопка — автосброс
     if dev.get("type") == "button":
         field = "pressed"
         want = _coerce_value(dev["state"].get(field, False), payload)
@@ -520,6 +570,13 @@ def _handle_device_message(did, topic, payload):
                 dev["state"][field] = False
                 dev["updated"] = datetime.now().isoformat(timespec="seconds")
                 save_state()
+
+                try:
+                    import bacnet_server
+                    bacnet_server.update_value(f"{did}:{field}", False)
+                except Exception:
+                    pass
+
                 trigger_events(did, field, False)
                 run_all_scenarios()
                 publish_device_state(did)
@@ -531,6 +588,14 @@ def _handle_device_message(did, topic, payload):
 
     set_device_state(did, changed)
     save_state()
+
+    try:
+        import bacnet_server
+        for k, v in changed.items():
+            bacnet_server.update_value(f"{did}:{k}", v)
+    except Exception as e:
+        log.debug("[mqtt] bacnet update error: %s", e)
+
     for k, v in changed.items():
         trigger_events(did, k, v)
     run_all_scenarios()
@@ -598,7 +663,7 @@ def _resubscribe_all(client):
             continue
         desired.setdefault(topic, set()).add(did)
 
-# 2) общая подписка на команды <base_topic>/<device_id>/<field>/set
+    # 2) общая подписка на команды <base_topic>/<device_id>/<field>/set
     base = (state["mqtt"].get("base_topic") or "smarthome").rstrip("/")
     command_topic = f"{base}/+/+/set"
     desired.setdefault(command_topic, set())
@@ -713,8 +778,7 @@ def restart():
 
 
 def publish_device_state(did):
-    """Публикует состояние устройства в его state_topic.
-    Если не задан — использует дефолтный <base_topic>/<device_id>/state."""
+    """Публикует состояние устройства в его state_topic."""
     if not (_client and _connected):
         return
     dev = state["devices"].get(did)
