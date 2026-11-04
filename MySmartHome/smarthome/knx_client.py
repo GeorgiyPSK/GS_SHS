@@ -543,7 +543,6 @@ def _handle_target(tgt, dst, src, payload, parsed_value, parsed_dpt):
                     "knx",
                     source="knx_client",
                     knx={"source": src, "dest": dst, "value": parsed_value},
-                    # ← не будим полный refresh UI
                     silent_ui=True,
                 )
             except Exception:
@@ -570,7 +569,6 @@ def _handle_target(tgt, dst, src, payload, parsed_value, parsed_dpt):
     value = _ensure_primitive(_from_knx(payload, dpt))
     value = _apply_scale(value, rspec)
 
-    # приведение к типу текущего значения в state
     cur = dev["state"].get(field)
     if isinstance(cur, bool):
         value = bool(value)
@@ -585,10 +583,8 @@ def _handle_target(tgt, dst, src, payload, parsed_value, parsed_dpt):
         except Exception:
             pass
 
-    # обновляем реестр GA даже если state не изменился
     _ga_store_set_value(dst, value, source="bus")
     _notify_ga_changed_ui(dst, value)
-    # будим ожидающих (на случай, если dpt в реестре был не тот)
     _notify_ga_waiters(dst, value)
 
     if dev["state"].get(field) == value:
@@ -598,6 +594,13 @@ def _handle_target(tgt, dst, src, payload, parsed_value, parsed_dpt):
     dev["state"][field] = value
     dev["updated"] = datetime.now().isoformat(timespec="seconds")
     save_state()
+
+    # === BACnet: обновить объект поля устройства ===
+    try:
+        import bacnet_server
+        bacnet_server.update_value(f"{dev_id}:{field}", value)
+    except Exception:
+        pass
 
     # логирование значений
     try:
