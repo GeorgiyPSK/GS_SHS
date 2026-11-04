@@ -218,19 +218,48 @@ import button as button_mod
 button_mod.release_all_on_start()
 
 
+_services_started = False
+
+
+def _start_services():
+    try:
+        import modbus_client
+        modbus_client.start_polling()
+    except Exception as e:
+        log.warning("modbus start failed: %s", e)
+
+    try:
+        import bacnet_server
+        log.info("[app] bacnet cfg: %r", bacnet_server._cfg())
+        bacnet_server.start()
+    except Exception as e:
+        log.warning("[app] bacnet autostart error: %s", e)
+
+    try:
+        import mqtt_client
+        mqtt_client.start()
+    except Exception as e:
+        log.warning("mqtt start failed: %s", e)
+
+    try:
+        import knx_client
+        knx_client.start()
+    except Exception as e:
+        log.warning("knx start failed: %s", e)
+
+
+def create_app():
+    global _services_started
+    if not _services_started:
+        _services_started = True
+        _start_services()
+    return app
+
+
+# ============ точка входа — САМОЙ ПОСЛЕДНЕЙ ============
 if __name__ == "__main__":
+    create_app()
     host = state["settings"].get("host", "0.0.0.0")
     port = int(state["settings"].get("port", 5000))
     log.info(f"[server] запуск на http://{host}:{port}")
     app.run(host=host, port=port, debug=False, use_reloader=False)
-try:
-    import modbus_client
-    modbus_client.start_polling()
-except Exception as e:
-    import logging
-    logging.getLogger("smarthome").warning("modbus start failed: %s", e)    
-    
-def create_app():
-    """Фабрика для waitress. Ничего дополнительно не делает —
-    просто возвращает уже сконфигурированный Flask-объект."""
-    return app
