@@ -29,3 +29,6 @@ cryptography>=42.0,<46.0
 
 # --- Опционально: YAML (config.yaml) ---
 PyYAML>=6.0,<7.0
+
+# --- BacNet ---
+BAC0>=24.0
