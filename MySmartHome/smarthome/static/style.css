@@ -2427,3 +2427,102 @@ tr.kga-flash {
   align-items: center;
   justify-content: center;
 }
+
+/* ---------- Таблица объектов BACnet в модалке ---------- */
+
+#bacnet-objects-body table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .85rem;
+}
+
+#bacnet-objects-body th,
+#bacnet-objects-body td {
+  padding: .35rem .55rem;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  text-align: left;
+  vertical-align: middle;
+}
+
+#bacnet-objects-body th {
+  font-weight: 600;
+  font-size: .78rem;
+  color: rgba(255,255,255,.7);
+  position: sticky;
+  top: 0;
+  background: rgba(15,22,40,.95);
+  z-index: 1;
+}
+
+#bacnet-objects-body td.bacnet-addr {
+  font-family: monospace;
+  color: #9cdcfe;
+  white-space: nowrap;
+}
+
+#bacnet-objects-body td.bacnet-objid {
+  font-family: monospace;
+  white-space: nowrap;
+}
+
+#bacnet-objects-body .bacnet-objid-AV {
+  color: #4fc3f7;
+}
+#bacnet-objects-body .bacnet-objid-BV {
+  color: #9ccc65;
+}
+#bacnet-objects-body .bacnet-objid-AI,
+#bacnet-objects-body .bacnet-objid-BI {
+  color: #ffb74d;
+}
+
+#bacnet-objects-body .bacnet-value {
+  font-family: monospace;
+  white-space: nowrap;
+}
+
+#bacnet-objects-body .bacnet-value-bool {
+  color: #9ccc65;
+}
+#bacnet-objects-body .bacnet-value-num {
+  color: #4fc3f7;
+}
+
+#bacnet-objects-body .bacnet-empty {
+  opacity: .6;
+  padding: 1rem;
+  text-align: center;
+}
+
+#bacnet-objects-overlay .form-control,
+#bacnet-objects-overlay input[type="text"] {
+  height: 32px;
+  padding: 0 .55rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.05);
+  color: #eaf2fb;
+  font: inherit;
+  font-size: .88rem;
+  outline: none;
+  transition: background .15s, border-color .15s, box-shadow .15s;
+  box-sizing: border-box;
+}
+
+#bacnet-objects-overlay .form-control::placeholder,
+#bacnet-objects-overlay input[type="text"]::placeholder {
+  color: rgba(234,242,251,.45);
+  opacity: 1;
+}
+
+#bacnet-objects-overlay .form-control:hover,
+#bacnet-objects-overlay input[type="text"]:hover {
+  background: rgba(255,255,255,.09);
+}
+
+#bacnet-objects-overlay .form-control:focus,
+#bacnet-objects-overlay input[type="text"]:focus {
+  border-color: #4fc3f7;
+  box-shadow: 0 0 0 2px rgba(79,195,247,.18);
+  background: rgba(255,255,255,.09);
+}
