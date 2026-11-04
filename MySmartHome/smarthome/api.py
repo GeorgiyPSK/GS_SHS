@@ -1286,20 +1286,33 @@ def server_set_port():
 
 @api.route("/server/restart", methods=["POST"])
 def server_restart():
+    import subprocess, sys, os, time, threading
+
     def _restart():
-        import time
         time.sleep(0.6)
+
         if sys.platform.startswith("win"):
-            TASK = "GS Smart Server"
+            # На Windows os.execv ведёт себя непредсказуемо:
+            # порт 5000 не освобождается до завершения старого процесса,
+            # и новый не может занять порт. Поэтому запускаем новый процесс
+            # отдельным окном и убиваем старый через os._exit.
             try:
-                subprocess.run(["schtasks", "/End", "/TN", TASK], check=False)
-                time.sleep(0.5)
-                subprocess.run(["schtasks", "/Run", "/TN", TASK], check=False)
+                flags = 0
+                if hasattr(subprocess, "CREATE_NEW_CONSOLE"):
+                    flags = subprocess.CREATE_NEW_CONSOLE
+                subprocess.Popen(
+                    [sys.executable] + sys.argv,
+                    cwd=os.getcwd(),
+                    creationflags=flags,
+                )
             except Exception as e:
-                log.info("[restart] schtasks error:%s", e)
+                log.warning("[restart] Popen failed: %s", e)
+            # Даём новому процессу время стартовать до освобождения порта старым
+            time.sleep(0.5)
             os._exit(0)
-        else:
-            os.execv(sys.executable, [sys.executable] + sys.argv)
+
+        # Linux / macOS: execv здесь работает нормально
+        os.execv(sys.executable, [sys.executable] + sys.argv)
 
     threading.Thread(target=_restart, daemon=True).start()
     return jsonify({"status": "restarting"})
@@ -2692,4 +2705,60 @@ def knx_refresh():
         log.warning("[knx] refresh_subscriptions error: %s", e)
         return jsonify({"ok": False, "error": str(e)}), 500
     return jsonify({"ok": True})
+
+# ============================================================
+# BACnet
+# ============================================================
+@api.route("/bacnet/settings", methods=["GET", "POST"])
+def bacnet_settings():
+    cfg = state["settings"].setdefault("bacnet", {
+        "enabled": False,
+        "ip": "0.0.0.0/24",
+        "port": 47808,
+        "device_id": 1001,
+        "device_name": "GS-Smart",
+        "vendor_id": 999,
+    })
+    if request.method == "POST":
+        body = request.get_json(silent=True) or {}
+        for k in ("enabled", "ip", "port", "device_id",
+                  "device_name", "vendor_id"):
+            if k in body:
+                cfg[k] = body[k]
+        save_state()
+        try:
+            import bacnet_server
+            bacnet_server.restart()
+        except Exception as e:
+            log.info("[bacnet] restart error: %s", e)
+    return jsonify(cfg)
+
+
+@api.route("/bacnet/status", methods=["GET"])
+def bacnet_status():
+    try:
+        import bacnet_server
+        return jsonify(bacnet_server.get_status())
+    except Exception as e:
+        return jsonify({
+            "available": False,
+            "started": False,
+            "last_error": str(e),
+        })
+
+
+@api.route("/bacnet/publish/<path:addr>", methods=["POST"])
+def bacnet_publish(addr):
+    rec = knx_ga_store.get(addr)
+    if not rec:
+        return jsonify({"error": "not found"}), 404
+    body = request.get_json(silent=True) or {}
+    rec["bacnet_published"] = bool(body.get("published", True))
+    save_state()
+    try:
+        import bacnet_server
+        bacnet_server._rebuild_objects()
+    except Exception as e:
+        log.info("[bacnet] rebuild error: %s", e)
+    return jsonify(rec)
 
