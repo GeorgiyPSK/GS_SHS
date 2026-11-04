@@ -430,9 +430,6 @@ def _obj_name_for(addr: str) -> str:
 
 
 def _publish_ga(addr: str, rec: dict):
-    """Создать объект BACnet для одного GA/MQTT-топика.
-    Если объект с таким именем уже есть — обновить presentValue
-    и вернуть None (чтобы не дублировать его в add_objects_to_application)."""
     global _next_instance
     if not _started or not _bacnet:
         return None
@@ -442,7 +439,7 @@ def _publish_ga(addr: str, rec: dict):
     value = rec.get("value")
     is_bool = dpt.startswith("DPT-1.") or isinstance(value, bool)
 
-    # ---- если объект уже есть: обновить значение, не добавлять повторно ----
+    # ---- если объект уже есть: обновить значение ----
     existing = _find_existing_object(obj_name)
     if existing is not None:
         try:
@@ -453,18 +450,20 @@ def _publish_ga(addr: str, rec: dict):
         except Exception as e:
             log.debug("[bacnet] update existing %s: %s", obj_name, e)
 
-        # зарегистрируем в _published, чтобы update_value работал
         kind = "BV" if is_bool else "AV"
         oid = getattr(existing, "objectIdentifier", None)
         instance = oid[1] if isinstance(oid, tuple) and len(oid) == 2 else 0
+        
+        # ВАЖНО: сохраняем value в _published
         _published[addr] = {
             "object": f"{kind},{instance}",
             "type": kind,
             "instance": instance,
             "name": obj_name,
             "is_bool": is_bool,
+            "value": value, 
         }
-        return None     # ← ВАЖНО: не добавляем повторно
+        return None
 
     # ---- создаём новый объект ----
     instance = _next_instance
@@ -478,7 +477,7 @@ def _publish_ga(addr: str, rec: dict):
                 name=obj_name,
                 description=descr,
                 presentValue=bool(value),
-                is_commandable=True,
+                # is_commandable=True,  
             )
             kind = "BV"
         else:
@@ -491,7 +490,7 @@ def _publish_ga(addr: str, rec: dict):
                 description=descr,
                 presentValue=float(value) if value is not None else 0.0,
                 properties={"units": "noUnits"},
-                is_commandable=True,
+                # is_commandable=True, 
             )
             kind = "AV"
 
@@ -501,6 +500,7 @@ def _publish_ga(addr: str, rec: dict):
             "instance": instance,
             "name": obj_name,
             "is_bool": is_bool,
+            "value": value,  
         }
         return obj
     except Exception as e:
@@ -519,28 +519,60 @@ def unpublish_ga(addr: str):
 # --------------------------------------------------------------------
 # Обновление значения 
 # --------------------------------------------------------------------
-def update_value(addr: str, value):
-    """Вызывается из knx_client / knx_ga_store / api при изменении GA,
-    MQTT-топика или поля устройства.
+# bacnet_server.py
 
-    addr: "X/Y/Z" (KNX GA), "topic" (MQTT) или "<device_id>:<field>".
-    """
-    if not _started:
+def update_value(addr: str, value):
+    log.info("[bacnet] update_value START: addr=%r, value=%r", addr, value)
+    
+    if not _started or not _loop:
+        log.warning("[bacnet] update_value: сервер не запущен")
         return
+        
     if addr not in _published:
+        log.warning("[bacnet] update_value: %r НЕТ в _published", addr)
         return
 
     info = _published[addr]
+    
+    if info.get("is_bool"):
+        new_val = bool(value)
+    else:
+        try:
+            new_val = float(value)
+        except (ValueError, TypeError):
+            log.warning("[bacnet] skip non-numeric update for %s: %r", addr, value)
+            return
+
+    _last_seen[addr] = new_val
+
+    async def _do_update():
+        try:
+            obj = _bacnet[info["name"]]
+            obj.presentValue = new_val
+            
+            if hasattr(obj, '_set_present_value'):
+                try:
+                    obj._set_present_value(new_val)
+                except Exception:
+                    pass
+                    
+            # Обновляем значение в _published для UI
+            if addr in _published:
+                _published[addr]["value"] = new_val
+                
+            log.info("[bacnet] _do_update: успешно обновлен %s -> %r", addr, new_val)
+        except Exception as e:
+            log.warning("[bacnet] _do_update: ошибка для %s: %s", addr, e)
+
     try:
-        obj = _bacnet[info["name"]]
-        if info.get("is_bool"):
-            obj.presentValue = bool(value)
-        else:
-            if isinstance(value, (int, float)):
-                obj.presentValue = float(value)
-        _last_seen[addr] = obj.presentValue
-    except Exception as e:
-        log.debug("[bacnet] update %s error: %s", addr, e)
+        running = asyncio.get_running_loop()
+    except RuntimeError:
+        running = None
+
+    if running is _loop:
+        asyncio.create_task(_do_update())
+    else:
+        asyncio.run_coroutine_threadsafe(_do_update(), _loop)
 
 
 # --------------------------------------------------------------------
