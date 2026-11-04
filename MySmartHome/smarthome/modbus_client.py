@@ -478,6 +478,13 @@ def _poll_loop():
                     dev["state"][k] = v
                     changed = True
 
+                    # === BACnet: толкнуть новое значение ===
+                    try:
+                        import bacnet_server
+                        bacnet_server.update_value(f"{dev_id}:{k}", v)
+                    except Exception:
+                        pass
+
             # Логирование значений
             try:
                 log_cfg = dev.get("logging") or {}
