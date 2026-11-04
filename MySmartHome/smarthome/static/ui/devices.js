@@ -19,16 +19,26 @@ const HANDLED_FIELDS = {
 /* ============================================================
    Модальное окно устройства
    ============================================================ */
-function openDeviceModal(id) {
-  const d = devicesCache.find(x => x.id === id);
-  if (!d) return;
-  _modalDeviceId = id;
-  const body = document.getElementById('modal-body');
-  body.innerHTML = renderCard(d);
-  restoreDetails();
-  document.getElementById('modal-overlay').classList.add('open');
-  document.addEventListener('keydown', _modalEscHandler, { once: true });
-}
+   async function openDeviceModal(id) {
+    const d = devicesCache.find(x => x.id === id);
+    if (!d) return;
+    _modalDeviceId = id;
+    const body = document.getElementById('modal-body');
+    body.innerHTML = renderCard(d);
+    restoreDetails();
+    document.getElementById('modal-overlay').classList.add('open');
+    document.addEventListener('keydown', _modalEscHandler, { once: true });
+  
+    // загружаем BACnet-привязки и перерисовываем, когда данные придут
+    try {
+      await loadDeviceBacnetLinks(id);
+      if (_modalDeviceId === id) {
+        withDetailsPreserved(() => { body.innerHTML = renderCard(d); });
+      }
+    } catch (e) {
+      console.warn('[bacnet] openDeviceModal load links:', e);
+    }
+  }
 
 function closeDeviceModal() {
   _modalDeviceId = null;
@@ -443,7 +453,7 @@ function renderCard(d) {
             <button class="btn small gray" onclick="readDeviceKnx('${d.id}')">🔄 Прочитать с шины</button>
           </div>
         </details>` : ''}
-
+        ${renderBacnetEditor(d)}
       ${currentMode === 'edit' ? `
         <details style="margin-top:.6rem; font-size:.75rem; opacity:.85;">
           <summary style="cursor:pointer; user-select:none;">🔌 Modbus</summary>
@@ -1111,4 +1121,67 @@ function renderCustomFieldsView(d) {
   }
   if (!parts.length) return '';
   return wrapGenericFields(parts);
+}
+
+async function loadDeviceBacnetLinks(did) {
+  try {
+    const links = await api('/api/devices/' + did + '/bacnet');
+    window._bacnetDeviceLinksCache = window._bacnetDeviceLinksCache || {};
+    window._bacnetDeviceLinksCache[did] = links || {};
+  } catch (e) {
+    console.warn('[bacnet] load links:', e);
+  }
+}
+
+async function toggleDeviceBacnet(did, field, checked) {
+  const d = devicesCache.find(x => x.id === did);
+  if (!d) return;
+  const v = d.state[field];
+  const objType = typeof v === 'boolean' ? 'BV' : 'AV';
+  const instance = checked
+    ? (Math.floor(Math.random() * 9000) + 1000)   // новый instance
+    : 0;
+
+  await updateDeviceBacnet(did, field, {
+    published: !!checked,
+    type: objType,
+    instance,
+  });
+}
+
+async function updateDeviceBacnetType(did, field, objType) {
+  const links = (window._bacnetDeviceLinksCache || {})[did] || {};
+  const spec = links[field] || {};
+  await updateDeviceBacnet(did, field, {
+    published: true,
+    type: objType,
+    instance: spec.instance || 1000,
+  });
+}
+
+async function updateDeviceBacnetInstance(did, field, instance) {
+  if (!instance || instance <= 0) return;
+  const links = (window._bacnetDeviceLinksCache || {})[did] || {};
+  const spec = links[field] || {};
+  await updateDeviceBacnet(did, field, {
+    published: true,
+    type: spec.type || 'AV',
+    instance,
+  });
+}
+
+async function updateDeviceBacnet(did, field, spec) {
+  try {
+    const r = await api('/api/devices/' + did + '/bacnet', 'POST', {
+      fields: { [field]: spec }
+    });
+    window._bacnetDeviceLinksCache = window._bacnetDeviceLinksCache || {};
+    window._bacnetDeviceLinksCache[did] = r.links || {};
+
+    // перерисовать карточку
+    if (typeof refreshDeviceModal === 'function') refreshDeviceModal();
+    else if (typeof renderCurrentView === 'function') renderCurrentView();
+  } catch (e) {
+    alert('BACnet: ' + e.message);
+  }
 }
