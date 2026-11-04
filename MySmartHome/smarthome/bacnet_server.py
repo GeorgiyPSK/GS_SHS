@@ -366,11 +366,23 @@ def stop():
     global _bacnet, _started
     _stop_event.set()
     if _thread and _thread.is_alive():
-        _thread.join(timeout=10)
+        _thread.join(timeout=20)
 
-    # если поток не смог освободить сокет — добиваем вручную
+    # Попытка принудительно закрыть сокеты BAC0
     try:
         if _bacnet is not None:
+            # Новый API bacpypes3
+            mux = getattr(_bacnet, 'this_application', None)
+            if mux:
+                mux = getattr(mux, 'mux', None)
+            if mux:
+                for port_name in ('directPort', 'broadcastPort'):
+                    port = getattr(mux, port_name, None)
+                    if port and hasattr(port, 'handle_close'):
+                        try:
+                            port.handle_close()
+                        except Exception:
+                            pass
             _bacnet.disconnect()
     except Exception:
         pass
