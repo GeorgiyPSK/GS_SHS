@@ -114,3 +114,183 @@ function stopBacnetPolling() {
 }
 
 document.addEventListener('DOMContentLoaded', startBacnetPolling);
+
+/* ============================================================
+   Модалка: объекты BACnet
+   ============================================================ */
+
+   let _bacnetObjectsTimer = null;
+   let _bacnetObjectsData = [];
+   let _bacnetObjectsLastFetch = 0;
+   
+   async function openBacnetObjectsModal() {
+     const overlay = document.getElementById('bacnet-objects-overlay');
+     if (!overlay) return;
+     overlay.classList.add('open');
+   
+     const searchEl = document.getElementById('bacnet-objects-search');
+     if (searchEl) searchEl.value = '';
+   
+     await refreshBacnetObjects();
+     // автоопрос раз в 2 секунды, пока модалка открыта
+     stopBacnetObjectsPolling();
+     _bacnetObjectsTimer = setInterval(() => {
+       if (!overlay.classList.contains('open')) {
+         stopBacnetObjectsPolling();
+         return;
+       }
+       refreshBacnetObjects().catch(() => {});
+     }, 2000);
+   }
+   
+   function closeBacnetObjectsModal() {
+     const overlay = document.getElementById('bacnet-objects-overlay');
+     if (overlay) overlay.classList.remove('open');
+     stopBacnetObjectsPolling();
+   }
+   
+   function stopBacnetObjectsPolling() {
+     if (_bacnetObjectsTimer) {
+       clearInterval(_bacnetObjectsTimer);
+       _bacnetObjectsTimer = null;
+     }
+   }
+   
+   async function refreshBacnetObjects() {
+    const now = Date.now();
+    if (now - _bacnetObjectsLastFetch < 1000) return;
+    _bacnetObjectsLastFetch = now;
+  
+    let st;
+    try {
+      st = await api('/api/bacnet/status');
+    } catch (e) {
+      const body = document.getElementById('bacnet-objects-body');
+      if (body) {
+        body.innerHTML = `<div class="bacnet-empty">
+          ⚠ Не удалось загрузить статус: ${esc(e.message)}
+        </div>`;
+      }
+      return;
+    }
+  
+    // Гарантированно подгружаем GA-реестр, чтобы получить name/value/dpt.
+    // Не полагаемся на window.knxGaCache — он может быть пустым,
+    // если пользователь не открывал вкладку «KNX-адреса».
+    let gasList = [];
+    try {
+      // Если knxGaCache уже загружен и не пуст — используем его,
+      // но только если он "свежий" (последний раз грузили < 30 сек назад)
+      if (Array.isArray(window.knxGaCache) && window.knxGaCache.length) {
+        gasList = window.knxGaCache;
+      } else {
+        gasList = await api('/api/knx/group_addresses');
+        window.knxGaCache = gasList;   // кэш пригодится и на вкладке KNX
+      }
+    } catch (e) {
+      // fallback: без GA-данных — покажем хотя бы Object ID
+      gasList = [];
+    }
+  
+    const gasByAddr = {};
+    for (const g of gasList) gasByAddr[g.address] = g;
+  
+    _bacnetObjectsData = (st.published || []).map(([addr, info]) => {
+      const ga = gasByAddr[addr] || {};
+      return {
+        address: addr,
+        name: ga.name || '',
+        value: ga.value,
+        dpt: ga.dpt || '',
+        object: info.object || '',
+        instance: info.instance || '',
+        type: info.type || '',
+        objName: info.name || '',
+      };
+    });
+  
+    renderBacnetObjectsTable();
+  }
+   
+   function renderBacnetObjectsTable() {
+     const body = document.getElementById('bacnet-objects-body');
+     const countEl = document.getElementById('bacnet-objects-count');
+     if (!body) return;
+   
+     const q = (document.getElementById('bacnet-objects-search')?.value || '')
+       .trim().toLowerCase();
+   
+     let list = _bacnetObjectsData.slice();
+     if (q) {
+       list = list.filter(r =>
+         (r.address || '').toLowerCase().includes(q) ||
+         (r.name || '').toLowerCase().includes(q) ||
+         (r.object || '').toLowerCase().includes(q) ||
+         (r.objName || '').toLowerCase().includes(q)
+       );
+     }
+   
+     if (countEl) {
+       countEl.textContent = q
+         ? `Найдено: ${list.length} из ${_bacnetObjectsData.length}`
+         : `${_bacnetObjectsData.length} объектов`;
+     }
+   
+     if (!list.length) {
+       body.innerHTML = `
+         <div class="bacnet-empty">
+           ${q
+             ? 'Ничего не найдено'
+             : 'Пока ничего не опубликовано.<br>Отметьте чекбоксы у GA на вкладке «KNX-адреса».'}
+         </div>`;
+       return;
+     }
+   
+     const fmtValue = (v, dpt) => {
+       if (v === null || v === undefined) return '<span style="opacity:.4;">—</span>';
+       if (typeof v === 'boolean') {
+         return `<span class="bacnet-value bacnet-value-bool">${v ? 'true' : 'false'}</span>`;
+       }
+       if (typeof v === 'number') {
+         const s = Number.isInteger(v) ? String(v) : v.toFixed(2);
+         return `<span class="bacnet-value bacnet-value-num">${s}</span>`;
+       }
+       return `<span class="bacnet-value">${esc(String(v))}</span>`;
+     };
+   
+     const fmtObj = (r) => {
+       const cls = 'bacnet-objid bacnet-objid-' + (r.type || '');
+       return `<span class="${cls}" title="${esc(r.objName)}">${esc(r.object)}</span>`;
+     };
+   
+     body.innerHTML = `
+       <table>
+         <thead>
+           <tr>
+             <th style="width:110px;">Адрес</th>
+             <th>Имя</th>
+             <th style="width:140px;">Значение</th>
+             <th style="width:100px;">DPT</th>
+             <th style="width:160px;">Object ID</th>
+           </tr>
+         </thead>
+         <tbody>
+           ${list.map(r => `
+             <tr>
+               <td class="bacnet-addr">${esc(r.address)}</td>
+               <td>${esc(r.name || '—')}</td>
+               <td>${fmtValue(r.value, r.dpt)}</td>
+               <td style="font-family:monospace; opacity:.7;">${esc(r.dpt || '')}</td>
+               <td>${fmtObj(r)}</td>
+             </tr>`).join('')}
+         </tbody>
+       </table>`;
+   }
+   
+   document.addEventListener('keydown', (e) => {
+     if (e.key !== 'Escape') return;
+     const overlay = document.getElementById('bacnet-objects-overlay');
+     if (overlay && overlay.classList.contains('open')) {
+       closeBacnetObjectsModal();
+     }
+   });
