@@ -10,6 +10,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 <script src="{{ url_for('static', filename='ui/conn-status.js') }}"></script>
 <script src="{{ url_for('static', filename='ui/bacnet.js') }}"></script>
+<script src="{{ url_for('static', filename='ui/mqtt_topics.js') }}"></script>
 </head>
 <body>
 
@@ -486,6 +487,7 @@
     <button id="tab-lua"                       onclick="switchView('lua')">🐍 Lua</button>
     <button id="tab-knx-ga"                    onclick="switchView('knx-ga')">🔗 KNX-адреса</button>
     <button id="tab-bacnet"                    onclick="switchView('bacnet')">🌐 BACnet</button>
+    <button id="tab-mqtt-topics" onclick="switchView('mqtt-topics')">📡 MQTT-топики</button>
   </div>
 
   <div id="bacnet-view" style="display:none;">
@@ -523,6 +525,22 @@
     <div id="bacnet-status-line" style="opacity:.8;font-size:.9rem;"></div>
     
   </div>
+
+<!-- ============ MQTT-топики ============ -->
+<div id="mqtt-topics-view" style="display:none;">
+  <div class="hint">
+    📡 <b>Список всех MQTT-топиков</b>. Здесь отображаются топики, к которым привязаны устройства, и их текущие значения. Вы можете опубликовать (publish) значение в топик или привязать его к объекту BACnet.
+  </div>
+  
+  <div class="toolbar" id="mqtt-topics-toolbar" style="margin-bottom: 1rem;">
+    <input type="text" id="mqtt-topics-search" placeholder="🔍 Поиск по топику или устройству..." oninput="renderMqttTopics()" style="width: 300px;">
+    <button class="btn gray" onclick="loadMqttTopics()">🔄 Обновить список</button>
+  </div>
+
+  <div id="mqtt-topics-table-wrap" style="max-width: 1600px; margin: 0 auto;">
+    <!-- Таблица будет сгенерирована через JS -->
+  </div>
+</div>
 
   <!-- ============ KNX-адреса ============ -->
   <div id="knx-ga-view" style="display:none;">
