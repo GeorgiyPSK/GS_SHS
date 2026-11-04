@@ -100,7 +100,7 @@ function renderCurrentView() {
 function switchView(v) {
   currentView = v;
   ['grid','plan','unassigned','events','scenarios','timers','system',
-   'mqtt-triggers','lua','knx-ga']
+   'mqtt-triggers','lua','knx-ga','bacnet']
     .forEach(k => {
       const tab = document.getElementById('tab-' + k);
       if (tab) tab.classList.toggle('active', k === v);
@@ -134,6 +134,9 @@ function switchView(v) {
       if (currentMode === 'user') renderViewUI();
       else renderPlanView();
     });
+  }
+  if (v === 'bacnet' && typeof loadBacnetSettings === 'function') {
+    loadBacnetSettings();
   }
    if (v === 'system') {
     loadServerInfo().catch(() => {});
