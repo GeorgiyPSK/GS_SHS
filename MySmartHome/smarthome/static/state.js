@@ -342,3 +342,51 @@ async function saveDeviceLogging(id, patch) {
   if (i >= 0) devicesCache[i].logging = updated;
   renderCurrentView();
 }
+
+function renderBacnetEditor(d) {
+  const allLinks = window._bacnetDeviceLinksCache || {};
+  const devLinks = allLinks[d.id] || {};
+  const fields   = Object.keys(d.state || {});
+
+  const rows = fields.map(f => {
+    const v = d.state[f];
+    const isBool = typeof v === 'boolean';
+    const spec = devLinks[f] || {};
+    const published = !!spec.object;
+    const objType = spec.type || (isBool ? 'BV' : 'AV');
+    const instance = spec.instance || '';
+    const objId = published ? esc(spec.object) : '';
+
+    return `
+      <div class="form-row" style="margin-bottom:.35rem;align-items:center;">
+        <label style="display:flex;gap:.4rem;align-items:center;flex:1;font-size:.85rem;">
+          <input type="checkbox" ${published ? 'checked' : ''}
+                 onchange="toggleDeviceBacnet('${d.id}', '${f}', this.checked)">
+          <span style="font-family:monospace;">${esc(f)}</span>
+        </label>
+        ${published ? `
+          <select onchange="updateDeviceBacnetType('${d.id}', '${f}', this.value)" style="width:70px;">
+            <option value="AV" ${objType === 'AV' ? 'selected' : ''}>AV</option>
+            <option value="BV" ${objType === 'BV' ? 'selected' : ''}>BV</option>
+          </select>
+          <input type="number" min="1" placeholder="inst"
+                 value="${instance}"
+                 onchange="updateDeviceBacnetInstance('${d.id}', '${f}', parseInt(this.value,10)||0)"
+                 style="width:90px;margin-left:.25rem;">
+          <span style="font-family:monospace;font-size:.75rem;opacity:.6;margin-left:.4rem;">
+            ${objId}
+          </span>
+        ` : ''}
+      </div>`;
+  }).join('') || '<div style="opacity:.6;font-size:.8rem;">Нет полей</div>';
+
+  return `
+    <details class="device-section" style="margin-top:.6rem;">
+      <summary style="cursor:pointer;opacity:.85;font-size:.9rem;">
+        🌐 BACnet <span style="opacity:.6;font-size:.8rem;">(${Object.keys(devLinks).length})</span>
+      </summary>
+      <div style="margin-top:.5rem;">
+        ${rows}
+      </div>
+    </details>`;
+}
