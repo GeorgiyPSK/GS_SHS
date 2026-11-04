@@ -41,17 +41,26 @@ def upsert(addr: str, **fields) -> dict:
         if v is not None:
             rec[k] = v
     rec.setdefault("updated", "")
+    rec.setdefault("bacnet_published", False)
     return rec
 
 
 def set_value(addr: str, value, source: str = "bus"):
-    """Обновляет текущее значение GA."""
     rec = all_gas().get(addr)
     if not rec:
         return
     rec["value"] = value
     rec["updated"] = datetime.now().isoformat(timespec="seconds")
-    rec["value_source"] = source   # "bus" | "ui" | "device"
+    rec["value_source"] = source
+
+    # трансляция в BACnet
+    if rec.get("bacnet_published"):
+        try:
+            import bacnet_server
+            bacnet_server.update_value(addr, value)
+        except Exception as e:
+            log.debug("[knx-ga] bacnet update error: %s", e)
+
     save_state()
 
 
@@ -103,3 +112,4 @@ def normalize():
         rec.setdefault("updated", "")
         rec.setdefault("readable", True)
         rec.setdefault("writable", True)
+        rec.setdefault("bacnet_published", False)
