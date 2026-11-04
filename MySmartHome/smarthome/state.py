@@ -31,7 +31,6 @@ LEGACY_STATE_FILE = os.path.join(BASE_DIR, "smarthome.json")
 _lock = threading.Lock()
 
 # --- Глобальное состояние ---
-# --- Глобальное состояние ---
 state = {
     "devices": {},
     "plan": {
@@ -45,6 +44,8 @@ state = {
     "scenarios": {},
     "timers": {},
     "mqtt_triggers": {},
+    "mqtt_bacnet_links": {},
+    "bacnet_device_links": {},
     "custom_types": {},
     "knx_group_addresses": {},
     "users": {},
@@ -219,6 +220,8 @@ def load_state():
     if isinstance(mqtt_data, dict):
         state["mqtt"].update(mqtt_data.get("settings", {}) or {})
         state["mqtt_triggers"] = mqtt_data.get("triggers", {}) or {}
+        state["mqtt_bacnet_links"] = mqtt_data.get("bacnet_links", {}) or {}
+        state["bacnet_device_links"] = mqtt_data.get("device_links", {}) or {}
 
     # Автоматизация
     automation_data = _load_json_file(_get_file_path("automation"))
@@ -265,6 +268,8 @@ def save_state():
         mqtt_data = {
             "settings": state.get("mqtt", {}),
             "triggers": state.get("mqtt_triggers", {}),
+            "bacnet_links": state.get("mqtt_bacnet_links", {}),
+            "device_links": state.get("bacnet_device_links", {}),
         }
         _save_json_file(_get_file_path("mqtt_config"), mqtt_data)
 
