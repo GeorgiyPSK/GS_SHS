@@ -2,6 +2,12 @@
    KNX: поля устройства, GA-таблица, привязки, настройки, импорт .knxproj
    ============================================================ */
 
+/* ---------- Пагинация таблицы GA ---------- */
+
+const KNX_GA_PAGE_SIZE = 50;
+let _knxGaPage = 1;               // текущая страница (1-based)
+let _knxGaFilteredCount = 0;      // сколько всего под фильтром (для счётчика)
+
 /* ---------- Форма полей KNX в карточке устройства ---------- */
 
 function renderKnxFieldsList(d) {
@@ -376,42 +382,52 @@ function renderKnxGaTable() {
     };
     list.sort(cmpFns[sortBy] || cmpFns.addr);
 
+    _knxGaFilteredCount = list.length;
+
     const counter = document.getElementById('knx-ga-counter');
-    if (counter) counter.textContent = `Найдено: ${list.length} из ${knxGaCache.length}`;
+    if (counter) {
+      counter.textContent = `Найдено: ${list.length} из ${knxGaCache.length}`;
+    }
 
     if (!list.length) {
       wrap.innerHTML = '<div class="empty">Ничего не найдено</div>';
       return;
     }
 
-    const rows = list.map(ga => {
+    // ---- пагинация ----
+    const totalPages = Math.max(1, Math.ceil(list.length / KNX_GA_PAGE_SIZE));
+    if (_knxGaPage > totalPages) _knxGaPage = totalPages;
+    if (_knxGaPage < 1) _knxGaPage = 1;
+
+    const start = (_knxGaPage - 1) * KNX_GA_PAGE_SIZE;
+    const end   = Math.min(start + KNX_GA_PAGE_SIZE, list.length);
+    const pageSlice = list.slice(start, end);
+
+    const rows = pageSlice.map(ga => {
       const addr = ga.address;
+
       const linked = ga.device_id
-      ? (() => {
-          // человекочитаемое имя устройства, если оно есть в кэше
-          const dev = (devicesCache || []).find(d => d.id === ga.device_id);
-          const devName = dev ? dev.name : '';
-          const shortId = ga.device_id.slice(0, 6) + '…';
-          const fieldTxt = ga.field || '—';
-    
-          const title = [
-            'GA: ' + ga.address,
-            'поле: ' + fieldTxt,
-            'устройство: ' + (devName || '?') + ' (' + ga.device_id + ')',
-          ].join('\n');
-    
-          return `
-            <span class="badge ok knx-linked" title="${esc(title)}"
-                  onclick="openDeviceModal('${esc(ga.device_id)}'); event.stopPropagation();"
-                  style="cursor:pointer; display:inline-flex; flex-direction:column;
-                         align-items:flex-start; gap:1px; line-height:1.15;">
-              <span style="font-weight:600;">🔗 ${esc(fieldTxt)}</span>
-              <span style="font-family:monospace; font-size:.68rem; opacity:.65;">
-                ${esc(devName ? devName + ' · ' : '')}${esc(shortId)}
-              </span>
-            </span>`;
-        })()
-      : '<span class="badge off">— не привязан —</span>';
+        ? (() => {
+            const dev = (devicesCache || []).find(d => d.id === ga.device_id);
+            const devName = dev ? dev.name : '';
+            const shortId = ga.device_id.slice(0, 6) + '…';
+            const fieldTxt = ga.field || '—';
+            const title = [
+              'GA: ' + ga.address,
+              'поле: ' + fieldTxt,
+              'устройство: ' + (devName || '?') + ' (' + ga.device_id + ')',
+            ].join('\n');
+            return `
+              <span class="badge ok knx-linked" title="${esc(title)}"
+                    style="display:inline-flex; flex-direction:column;
+                           align-items:flex-start; gap:1px; line-height:1.15;">
+                <span style="font-weight:600;">🔗 ${esc(fieldTxt)}</span>
+                <span style="font-family:monospace; font-size:.68rem; opacity:.65;">
+                  ${esc(devName ? devName + ' · ' : '')}${esc(shortId)}
+                </span>
+              </span>`;
+          })()
+        : '<span class="badge off">— не привязан —</span>';
 
       const val = formatGaValue(ga);
       const isBool = (ga.dpt || '').startsWith('DPT-1.');
@@ -433,60 +449,106 @@ function renderKnxGaTable() {
       }
 
       return `
-        <tr data-ga="${esc(addr)}">
-          <td style="font-family:monospace;">${esc(addr)}</td>
-          <td>
-            <input type="text" data-ga-name="${esc(addr)}"
-                   value="${esc(ga.name || '')}"
-                   style="width:100%; min-width:180px;">
-          </td>
-          <td>
-            <input type="text" data-ga-dpt="${esc(addr)}"
-                   value="${esc(ga.dpt || '')}"
-                   style="width:90px; font-family:monospace;">
-          </td>
-          <td style="font-family:monospace; text-align:right; white-space:nowrap;">
-            ${val}
-            ${ga.updated ? `<div style="font-size:.7rem;opacity:.55;">${esc(ga.updated)}</div>` : ''}
-          </td>
-          <td>
-            <div style="display:flex; gap:.25rem; align-items:center; white-space:nowrap;">
-              ${inputHtml}
-              <button class="btn small green" onclick="knxGaWrite('${esc(addr)}')" title="Записать в шину">➡</button>
-              <button class="btn small gray"  onclick="knxGaRead('${esc(addr)}')"  title="Прочитать с шины">⬅</button>
-            </div>
-          </td>
-          <td>${linked}</td>
-          <td>
-            <div style="display:flex; gap:.25rem; flex-wrap:nowrap; white-space:nowrap;">
-              <button class="btn small gray"   onclick="knxGaSave('${esc(addr)}')"   title="Сохранить имя и DPT">💾</button>
-              <button class="btn small gray"   onclick="openKnxLinkModal('${esc(addr)}', {dpt: '${esc(ga.dpt || '')}'})" title="Привязать к устройству">🔗</button>
-              <button class="btn small danger" onclick="knxGaUnlink('${esc(addr)}')" title="Отвязать">✕</button>
-            </div>
-          </td>
-        </tr>`;
+      <tr data-ga="${esc(addr)}">
+      <td style="font-family:monospace; white-space:nowrap;">
+        <label style="display:inline-flex; gap:.35rem; align-items:center; cursor:pointer;">
+          <input type="checkbox"
+                 data-bacnet-publish="${esc(addr)}"
+                 ${ga.bacnet_published ? 'checked' : ''}
+                 onchange="knxGaToggleBacnet('${esc(addr)}', this.checked)"
+                 title="Публиковать в BACnet">
+          ${esc(addr)}
+        </label>
+      </td>
+      <td>
+        <input type="text" data-ga-name="${esc(addr)}"
+               value="${esc(ga.name || '')}"
+               style="width:100%; min-width:180px;">
+      </td>
+      <td>
+        <input type="text" data-ga-dpt="${esc(addr)}"
+               value="${esc(ga.dpt || '')}"
+               style="width:90px; font-family:monospace;">
+      </td>
+      <td style="font-family:monospace; text-align:right; white-space:nowrap;">
+        ${val}
+        ${ga.updated ? `<div style="font-size:.7rem;opacity:.55;">${esc(ga.updated)}</div>` : ''}
+      </td>
+      <td>
+        <div style="display:flex; gap:.25rem; align-items:center; white-space:nowrap;">
+          ${inputHtml}
+          <button class="btn small green" onclick="knxGaWrite('${esc(addr)}')" title="Записать в шину">➡</button>
+          <button class="btn small gray"  onclick="knxGaRead('${esc(addr)}')"  title="Прочитать с шины">⬅</button>
+        </div>
+      </td>
+      <td>${linked}</td>
+      <td>
+        <div style="display:flex; gap:.25rem; flex-wrap:nowrap; white-space:nowrap;">
+          <button class="btn small gray"   onclick="knxGaSave('${esc(addr)}')"   title="Сохранить имя и DPT">💾</button>
+          <button class="btn small gray"   onclick="openKnxLinkModal('${esc(addr)}', {dpt: '${esc(ga.dpt || '')}'})" title="Привязать к устройству">🔗</button>
+          <button class="btn small danger" onclick="knxGaUnlink('${esc(addr)}')" title="Отвязать">✕</button>
+        </div>
+      </td>
+    </tr>`;
     }).join('');
+
+    // ---- панель пагинации ----
+    const pagHtml = `
+      <div class="knx-ga-pager">
+        <button class="btn small gray" onclick="knxGaGoPage(1)"
+                ${_knxGaPage === 1 ? 'disabled' : ''}>«</button>
+        <button class="btn small gray" onclick="knxGaGoPage(${_knxGaPage - 1})"
+                ${_knxGaPage === 1 ? 'disabled' : ''}>‹ Назад</button>
+
+        <span class="knx-ga-pager-info">
+          Стр. ${_knxGaPage} из ${totalPages}
+          · ${start + 1}–${end} из ${list.length}
+        </span>
+
+        <button class="btn small gray" onclick="knxGaGoPage(${_knxGaPage + 1})"
+                ${_knxGaPage === totalPages ? 'disabled' : ''}>Вперёд ›</button>
+        <button class="btn small gray" onclick="knxGaGoPage(${totalPages})"
+                ${_knxGaPage === totalPages ? 'disabled' : ''}>»</button>
+
+        <label class="knx-ga-pager-jump" style="display:inline-flex; gap:.35rem; align-items:center; margin-left:.5rem;">
+          Перейти:
+          <input type="number" min="1" max="${totalPages}" value="${_knxGaPage}"
+                 onchange="knxGaGoPage(parseInt(this.value,10)||1)"
+                 style="width:70px;">
+        </label>
+      </div>`;
 
     wrap.innerHTML = `
       <table class="knx-ga-table">
-        <thead>
-          <tr>
-            <th style="width:100px;">Адрес</th>
-            <th>Имя (ETS)</th>
-            <th style="width:110px;">DPT</th>
-            <th style="width:140px;">Текущее</th>
-            <th style="width:230px;">Записать</th>
-            <th style="width:160px;">Привязка</th>
-            <th style="width:150px;">Действия</th>
-          </tr>
-        </thead>
+      <thead>
+      <tr>
+        <th style="width:100px;">Адрес</th>
+        <th style="width:auto;">Имя (ETS)</th>
+        <th style="width:100px;">DPT</th>
+        <th style="width:150px;">Текущее</th>
+        <th style="width:170px;">Записать</th>
+        <th style="width:190px;">Привязка</th>
+        <th style="width:130px;">Действия</th>
+      </tr>
+    </thead>
         <tbody>${rows}</tbody>
-      </table>`;
+      </table>
+      ${pagHtml}`;
   } catch (e) {
     console.error('[knx-ga] renderKnxGaTable error:', e);
     const wrap = document.getElementById('knx-ga-table-wrap');
     if (wrap) wrap.innerHTML = '<div class="empty">Ошибка рендера: ' + esc(e.message || e) + '</div>';
   }
+}
+
+/* ---------- Управление страницами ---------- */
+
+function knxGaGoPage(n) {
+  _knxGaPage = Math.max(1, parseInt(n, 10) || 1);
+  renderKnxGaTable();
+  // прокрутим таблицу наверх, чтобы не оставаться внизу после смены страницы
+  const wrap = document.getElementById('knx-ga-table-wrap');
+  if (wrap) wrap.scrollTop = 0;
 }
 
 function formatGaValue(ga) {
@@ -1055,5 +1117,24 @@ async function knxRelinkFromDevices() {
     await knxGaReload();
   } catch (e) {
     alert('Ошибка: ' + e.message);
+  }
+}
+
+function knxGaFilterChanged() {
+  _knxGaPage = 1;
+  renderKnxGaTable();
+}
+
+async function knxGaToggleBacnet(addr, checked) {
+  try {
+    await api('/api/bacnet/publish/' + encodeURIComponent(addr),
+              'POST', { published: !!checked });
+    const ga = knxGaCache.find(x => x.address === addr);
+    if (ga) ga.bacnet_published = !!checked;
+  } catch (e) {
+    alert('BACnet: ' + e.message);
+    // откатить чекбокс
+    const cb = document.querySelector(`[data-bacnet-publish="${CSS.escape(addr)}"]`);
+    if (cb) cb.checked = !checked;
   }
 }
