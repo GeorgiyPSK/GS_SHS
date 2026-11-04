@@ -2711,26 +2711,34 @@ def knx_refresh():
 # ============================================================
 @api.route("/bacnet/settings", methods=["GET", "POST"])
 def bacnet_settings():
-    cfg = state["settings"].setdefault("bacnet", {
-        "enabled": False,
-        "ip": "0.0.0.0/24",
-        "port": 47808,
-        "device_id": 1001,
-        "device_name": "GS-Smart",
-        "vendor_id": 999,
-    })
+    cfg = state["settings"].setdefault("bacnet", {...})
     if request.method == "POST":
         body = request.get_json(silent=True) or {}
-        for k in ("enabled", "ip", "port", "device_id",
-                  "device_name", "vendor_id"):
+        old_enabled = bool(cfg.get("enabled"))
+        for k in ("enabled", "ip", "port", "device_id", "device_name", "vendor_id"):
             if k in body:
                 cfg[k] = body[k]
         save_state()
-        try:
-            import bacnet_server
-            bacnet_server.restart()
-        except Exception as e:
-            log.info("[bacnet] restart error: %s", e)
+
+        new_enabled = bool(cfg.get("enabled"))
+        if old_enabled != new_enabled:
+            import threading, time, sys, os, subprocess
+            def _restart_all():
+                time.sleep(0.5)
+                try:
+                    flags = getattr(subprocess, "CREATE_NEW_CONSOLE", 0)
+                    subprocess.Popen(
+                        [sys.executable] + sys.argv,
+                        cwd=os.getcwd(),
+                        creationflags=flags,
+                    )
+                except Exception as e:
+                    log.warning("[bacnet] restart Popen failed: %s", e)
+                # даём новому процессу подняться
+                time.sleep(0.8)
+                os._exit(0)
+            threading.Thread(target=_restart_all, daemon=True).start()
+            return jsonify({"status": "restarting", "config": cfg})
     return jsonify(cfg)
 
 
