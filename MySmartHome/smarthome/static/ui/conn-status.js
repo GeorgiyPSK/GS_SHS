@@ -276,12 +276,13 @@
        connFetchMqtt(),
        connFetchKnx(),
        connFetchModbus(),
+       connFetchBacnet(),
        connFetchZ2M(),
        connFetchTelegram(),
      ]);
    
      const now = Date.now();
-     const keys = ['mqtt', 'knx', 'modbus', 'z2m', 'telegram'];
+     const keys = ['mqtt', 'knx', 'modbus', 'bacnet', 'z2m', 'telegram'];
      for (let i = 0; i < keys.length; i++) {
        const key = keys[i];
        const el = document.getElementById('conn-' + key);
@@ -314,3 +315,56 @@
    });
    
    window.refreshConnStatus = refreshConnStatus;
+
+   /* ============================================================
+   BACnet
+   ============================================================ */
+
+async function connFetchBacnet() {
+  const j = await connFetch('/api/bacnet/status');
+
+  if (j.__missing) {
+    // Эндпоинта нет — пробуем узнать из конфига
+    const cfg = await connFetch('/api/config');
+    const b = (cfg && cfg.bacnet) || {};
+    if (!b.enabled) {
+      connSetState('bacnet', 'off', 'BACnet выключен');
+    } else {
+      connSetState('bacnet', 'warn', 'BACnet включён (нет API статуса)');
+    }
+    return;
+  }
+
+  if (j.__error) {
+    connSetState('bacnet', 'unknown', 'BACnet: нет ответа (сеть?)');
+    return;
+  }
+
+  // 1) Включён ли BACnet в настройках?
+  const enabled = (j.config && j.config.enabled !== undefined)
+    ? !!j.config.enabled
+    : (j.enabled !== undefined ? !!j.enabled : true);
+
+  if (!enabled) {
+    connSetState('bacnet', 'off', 'BACnet выключен в настройках');
+    return;
+  }
+
+  // 2) Библиотека BAC0 установлена?
+  if (j.available === false) {
+    connSetState('bacnet', 'off',
+      'BACnet: библиотека BAC0 не установлена');
+    return;
+  }
+
+  // 3) Сервер запущен?
+  if (j.started) {
+    const cnt = (j.published || []).length;
+    connSetState('bacnet', 'ok',
+      'BACnet работает · опубликовано: ' + cnt);
+  } else {
+    const err = j.last_error ? ': ' + j.last_error : '';
+    connSetState('bacnet', 'err',
+      'BACnet не запущен' + err);
+  }
+}
