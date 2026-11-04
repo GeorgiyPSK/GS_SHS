@@ -458,3 +458,51 @@ function startRefreshLoop(ms) {
     }
   }, true);
 })();
+
+async function restartServerFromHeader() {
+  if (!confirm('Вы уверены, что хотите перезапустить сервер?\nИнтерфейс будет недоступен несколько секунд.')) {
+    return;
+  }
+
+  const btn = document.getElementById('restart-btn');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳';
+    btn.title = 'Перезапуск…';
+  }
+
+  try {
+    await api('/api/server/restart', 'POST', {});
+    
+    // Показываем оверлей, чтобы пользователь не тыкал по кнопкам, пока сервер умирает
+    let overlay = document.getElementById('restart-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'restart-overlay';
+      overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:99999; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; font-size:1.2rem; gap:1rem;';
+      overlay.innerHTML = '<div>♻️ Сервер перезапускается…</div><div style="font-size:.9rem; opacity:.7;">Пожалуйста, подождите.</div>';
+      document.body.appendChild(overlay);
+    }
+
+    // Ждем, пока сервер поднимется, и перезагружаем страницу
+    const poll = setInterval(async () => {
+      try {
+        const r = await fetch('/api/version');
+        if (r.ok) {
+          clearInterval(poll);
+          window.location.reload();
+        }
+      } catch (e) {
+        // Сервер ещё лежит, ждём дальше
+      }
+    }, 1000);
+
+  } catch (e) {
+    alert('Ошибка при перезапуске: ' + e.message);
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '♻️';
+      btn.title = 'Перезапустить сервер';
+    }
+  }
+}
