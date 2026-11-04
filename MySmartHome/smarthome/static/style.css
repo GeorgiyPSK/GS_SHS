@@ -2526,3 +2526,64 @@ tr.kga-flash {
   box-shadow: 0 0 0 2px rgba(79,195,247,.18);
   background: rgba(255,255,255,.09);
 }
+
+/* Контейнер таблицы MQTT */
+#mqtt-topics-table-wrap {
+  overflow-x: auto;
+  width: 100%;
+}
+
+#mqtt-topics-table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1000px;
+}
+
+#mqtt-topics-table-wrap th,
+#mqtt-topics-table-wrap td {
+  padding: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  vertical-align: middle;
+  text-align: left;
+}
+
+/* Топик (длинный, разрешаем перенос) */
+#mqtt-topics-table-wrap td:nth-child(1) {
+  word-break: break-all;
+  max-width: 300px;
+}
+
+/* Инпуты и кнопки внутри таблицы */
+#mqtt-topics-table-wrap input[type="text"] {
+  box-sizing: border-box;
+}
+
+#mqtt-topics-table-wrap .btn.small {
+  padding: 4px 8px;
+  font-size: 0.8em;
+}
+
+.mqtt-topics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .85rem;
+}
+.mqtt-topics-table th,
+.mqtt-topics-table td {
+  padding: .4rem .55rem;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  vertical-align: top;
+  text-align: left;
+}
+.mqtt-topics-table th {
+  font-weight: 600;
+  font-size: .78rem;
+  color: rgba(255,255,255,.7);
+  position: sticky;
+  top: 0;
+  background: rgba(15,22,40,.95);
+  z-index: 1;
+}
+.mqtt-topics-table tr:hover td {
+  background: rgba(79,195,247,.05);
+}
