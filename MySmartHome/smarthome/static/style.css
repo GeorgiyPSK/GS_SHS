@@ -2287,3 +2287,143 @@ tr.kga-flash {
   z-index: 1201;
   position: relative;
 }
+
+/* ---------- Пагинация таблицы KNX-адресов ---------- */
+
+.knx-ga-pager {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .4rem;
+  padding: .6rem .2rem .2rem;
+  justify-content: center;
+}
+
+.knx-ga-pager-info {
+  font-size: .85rem;
+  opacity: .85;
+  margin: 0 .4rem;
+  white-space: nowrap;
+}
+
+.knx-ga-pager-jump input {
+  width: 70px;
+  height: 28px;
+  padding: 0 .4rem;
+}
+
+.knx-ga-pager button[disabled] {
+  opacity: .35;
+  cursor: not-allowed;
+}
+
+/* Чтобы горизонтальный скроллбар таблицы не «прыгал» при смене страниц */
+#knx-ga-table-wrap {
+  overflow-x: auto;
+}
+
+/* Контейнер таблицы */
+#knx-ga-table-wrap {
+  overflow-x: auto; 
+  width: 100%;
+}
+
+/* Таблица: используем auto layout, чтобы колонки подстраивались под контент */
+#knx-ga-table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+  /* table-layout: fixed;  <-- УБИРАЕМ ЭТО */
+  min-width: 1200px; /* Задаем минимальную ширину, чтобы на узких экранах была прокрутка, а не сжатие */
+}
+
+/* Ячейки */
+#knx-ga-table-wrap th,
+#knx-ga-table-wrap td {
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  vertical-align: middle;
+  text-align: left;
+  /* white-space: nowrap; <-- УБИРАЕМ, чтобы текст мог переноситься, если нужно */
+}
+
+/* --- ТОЧЕЧНАЯ НАСТРОЙКА КОЛОНОК --- */
+
+/* Чекбокс */
+#knx-ga-table-wrap th:nth-child(1),
+#knx-ga-table-wrap td:nth-child(1) { width: 40px; text-align: center; }
+
+/* Адрес */
+#knx-ga-table-wrap th:nth-child(2),
+#knx-ga-table-wrap td:nth-child(2) { width: 80px; font-family: monospace; }
+
+/* DPT */
+#knx-ga-table-wrap th:nth-child(4),
+#knx-ga-table-wrap td:nth-child(4) { width: 100px; font-family: monospace; }
+
+/* Текущее (даем чуть больше места) */
+#knx-ga-table-wrap th:nth-child(5),
+#knx-ga-table-wrap td:nth-child(5) { width: 150px; font-size: 0.85rem; }
+
+/* Запись (селектор + кнопка) */
+#knx-ga-table-wrap th:nth-child(6),
+#knx-ga-table-wrap td:nth-child(6) { width: 180px; }
+
+/* Действия (иконки) */
+#knx-ga-table-wrap th:nth-child(8),
+#knx-ga-table-wrap td:nth-child(8) { width: 110px; text-align: center; }
+
+/* --- СТИЛИЗАЦИЯ ЭЛЕМЕНТОВ ВНУТРИ --- */
+
+/* Поля ввода и селекты */
+#knx-ga-table-wrap select,
+#knx-ga-table-wrap input[type="text"] {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px 6px;
+  background: #1e1e1e;
+  color: #fff;
+  border: 1px solid #444;
+  border-radius: 4px;
+}
+
+/* Группировка элементов в колонке "Запись" (чтобы кнопка не прилипала) */
+#knx-ga-table-wrap td:nth-child(6) {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+#knx-ga-table-wrap td:nth-child(6) select { flex: 1; }
+#knx-ga-table-wrap td:nth-child(6) button { flex: 0 0 auto; }
+
+/* Зеленые кнопки "Привязка" */
+#knx-ga-table-wrap td:nth-child(7) .btn,
+#knx-ga-table-wrap td:nth-child(7) button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  text-align: left;
+  white-space: normal; /* Разрешаем перенос текста, если он длинный */
+  word-break: break-word;
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  background-color: #4caf50; /* Зеленый цвет, если у вас нет своего класса */
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* Кнопки действий (иконки) */
+#knx-ga-table-wrap td:nth-child(8) {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+#knx-ga-table-wrap td:nth-child(8) button {
+  padding: 4px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
