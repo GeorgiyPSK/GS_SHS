@@ -9,6 +9,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 <script src="{{ url_for('static', filename='ui/conn-status.js') }}"></script>
+<script src="{{ url_for('static', filename='ui/bacnet.js') }}"></script>
 </head>
 <body>
 
@@ -451,6 +452,42 @@
     <button id="tab-mqtt-triggers"             onclick="switchView('mqtt-triggers')">📡 MQTT-триггеры</button>
     <button id="tab-lua"                       onclick="switchView('lua')">🐍 Lua</button>
     <button id="tab-knx-ga"                    onclick="switchView('knx-ga')">🔗 KNX-адреса</button>
+    <button id="tab-bacnet"                    onclick="switchView('bacnet')">🌐 BACnet</button>
+  </div>
+
+  <div id="bacnet-view" style="display:none;">
+    <div class="hint">🌐 <b>BACnet/IP</b>. Публикация выбранных KNX GA как объектов BACnet.</div>
+  
+    <div class="mqtt-form" id="bacnet-form">
+      <div class="mqtt-field">
+        <label for="bacnet-enabled">Включить BACnet</label>
+        <input type="checkbox" id="bacnet-enabled">
+        <small>Запустить BACnet-сервер</small>
+      </div>
+      <div class="mqtt-field">
+        <label for="bacnet-ip">IP / маска (CIDR)</label>
+        <input type="text" id="bacnet-ip" placeholder="0.0.0.0/24" style="width:180px">
+      </div>
+      <div class="mqtt-field">
+        <label for="bacnet-port">Порт</label>
+        <input type="number" id="bacnet-port" value="47808" style="width:120px">
+      </div>
+      <div class="mqtt-field">
+        <label for="bacnet-device-id">Device ID</label>
+        <input type="number" id="bacnet-device-id" value="1001" style="width:120px">
+      </div>
+      <div class="mqtt-field">
+        <label for="bacnet-device-name">Device Name</label>
+        <input type="text" id="bacnet-device-name" value="GS-Smart" style="width:200px">
+      </div>
+      <div class="mqtt-field mqtt-actions" style="flex-direction:row;gap:.5rem;">
+        <button onclick="saveBacnetSettings()">💾 Сохранить</button>
+        <button class="btn gray" onclick="loadBacnetSettings()">🔄 Обновить</button>
+      </div>
+    </div>
+  
+    <div id="bacnet-status-line" style="opacity:.8;font-size:.9rem;"></div>
+    <div id="bacnet-published-list" style="font-family:monospace;font-size:.85rem;margin-top:.5rem;"></div>
   </div>
 
   <!-- ============ KNX-адреса ============ -->
@@ -474,17 +511,17 @@
 
     <div class="toolbar" id="knx-ga-filter">
       <input id="knx-ga-search" type="text"
-             placeholder="🔍 поиск по адресу или имени"
-             oninput="renderKnxGaTable()" style="min-width:280px;">
-      <label style="display:flex;gap:.3rem;align-items:center;font-size:.9rem;">
-        <input type="checkbox" id="knx-ga-only-linked"
-               onchange="renderKnxGaTable()"> только привязанные
-      </label>
-      <label style="display:flex;gap:.3rem;align-items:center;font-size:.9rem;">
-        <input type="checkbox" id="knx-ga-only-with-value"
-               onchange="renderKnxGaTable()"> только со значением
-      </label>
-      <select id="knx-ga-sort" onchange="renderKnxGaTable()">
+       placeholder="🔍 поиск по адресу или имени"
+       oninput="knxGaFilterChanged()" style="min-width:280px;">
+<label style="display:flex;gap:.3rem;align-items:center;font-size:.9rem;">
+  <input type="checkbox" id="knx-ga-only-linked"
+         onchange="knxGaFilterChanged()"> только привязанные
+</label>
+<label style="display:flex;gap:.3rem;align-items:center;font-size:.9rem;">
+  <input type="checkbox" id="knx-ga-only-with-value"
+         onchange="knxGaFilterChanged()"> только со значением
+</label>
+<select id="knx-ga-sort" onchange="knxGaFilterChanged()">
         <option value="addr">сортировка: адрес</option>
         <option value="name">сортировка: имя</option>
         <option value="dpt">сортировка: DPT</option>
