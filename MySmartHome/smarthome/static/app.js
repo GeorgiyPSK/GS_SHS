@@ -100,7 +100,7 @@ function renderCurrentView() {
 function switchView(v) {
   currentView = v;
   ['grid','plan','unassigned','events','scenarios','timers','system',
-   'mqtt-triggers','lua','knx-ga','bacnet']
+   'mqtt-triggers','lua','knx-ga','bacnet', 'mqtt-topics']
     .forEach(k => {
       const tab = document.getElementById('tab-' + k);
       if (tab) tab.classList.toggle('active', k === v);
@@ -123,7 +123,9 @@ function switchView(v) {
       api('/api/scenarios'),
     ]).then(([t, s]) => { mqttTriggersCache = t; scenariosCache = s; }),
   };
-
+  if (v === 'mqtt-topics' && typeof loadMqttTopics === 'function') {
+    loadMqttTopics().catch(() => {});
+  }
   if (v === 'lua') reloadLuaScripts().catch(() => {});
   if (v === 'knx-ga' && typeof knxGaReload === 'function') {
     try { knxGaReload().catch(e => console.error('[knx-ga] reload:', e)); }
