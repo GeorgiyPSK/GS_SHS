@@ -185,6 +185,15 @@ def _migrate_from_legacy():
         log.warning("[state] Не удалось переименовать старый файл: %s", e)
 
 
+def _deep_merge(base: dict, update: dict) -> dict:
+    """Рекурсивно сливает update в base, не затирая вложенные словари."""
+    for k, v in update.items():
+        if k in base and isinstance(base[k], dict) and isinstance(v, dict):
+            _deep_merge(base[k], v)
+        else:
+            base[k] = v
+    return base
+
 def load_state():
     """Загружает состояние из нескольких файлов."""
     global state
@@ -232,7 +241,7 @@ def load_state():
     # Настройки
     settings_data = _load_json_file(_get_file_path("settings"))
     if isinstance(settings_data, dict):
-        state["settings"].update(settings_data)
+        _deep_merge(state["settings"], settings_data)
 
     # Безопасность
     security_data = _load_json_file(_get_file_path("security"))
@@ -319,12 +328,31 @@ def normalize_state():
         state["plan"]["charts"] = []
     if "lua_scripts" not in state or not isinstance(state["lua_scripts"], dict):
         state["lua_scripts"] = {}
+
     # секция zigbee2mqtt в settings
     st = state.setdefault("settings", {})
     z2m = st.setdefault("zigbee2mqtt", {})
     z2m.setdefault("enabled", False)
     z2m.setdefault("base_topic", "zigbee2mqtt")
     z2m.setdefault("host", "http://localhost:8080")
+    
+    # секция pushover в settings
+    po = st.setdefault("pushover", {})
+    po.setdefault("enabled", False)
+    po.setdefault("user_key", "")
+    po.setdefault("token", "")
+
+    # секция assistant в settings
+    asis = st.setdefault("assistant", {})
+    asis.setdefault("enabled", False)
+    asis.setdefault("llm_model", "qwen2.5")
+    asis.setdefault("llm_url", "http://localhost:11434")
+    asis.setdefault("llm_timeout", 60)
+    asis.setdefault("tts_voice", "male_deep")
+    asis.setdefault("tts_timeout", 120)
+    asis.setdefault("tts_path", "xvibe-tts")
+    asis.setdefault("engine", "ollama")
+    asis.setdefault("deepseek_key", "")
 
     # секция modbus в settings
     st.setdefault("modbus_poll_ms", 2000)
