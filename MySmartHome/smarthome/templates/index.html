@@ -11,6 +11,8 @@
 <script src="{{ url_for('static', filename='ui/conn-status.js') }}"></script>
 <script src="{{ url_for('static', filename='ui/bacnet.js') }}"></script>
 <script src="{{ url_for('static', filename='ui/mqtt_topics.js') }}"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/drawflow@0.0.59/dist/drawflow.min.css">
+<script src="https://cdn.jsdelivr.net/npm/drawflow@0.0.59/dist/drawflow.min.js"></script>
 </head>
 <body>
 
@@ -481,13 +483,15 @@
     <button id="tab-unassigned"                onclick="switchView('unassigned')">📦 Без комнаты</button>
     <button id="tab-events"                    onclick="switchView('events')">⚡ События</button>
     <button id="tab-scenarios"                 onclick="switchView('scenarios')">🧠 Сценарии</button>
+   <!-- <button id="tab-visual"                    onclick="switchView('visual')">🧩 Визуальные сценарии</button>-->
     <button id="tab-timers"                    onclick="switchView('timers')">⏰ Таймеры</button>
     <button id="tab-system"                    onclick="switchView('system')">⚙️ Система</button>
     <button id="tab-mqtt-triggers"             onclick="switchView('mqtt-triggers')">📡 MQTT-триггеры</button>
     <button id="tab-lua"                       onclick="switchView('lua')">🐍 Lua</button>
     <button id="tab-knx-ga"                    onclick="switchView('knx-ga')">🔗 KNX-адреса</button>
     <button id="tab-bacnet"                    onclick="switchView('bacnet')">🌐 BACnet</button>
-    <button id="tab-mqtt-topics" onclick="switchView('mqtt-topics')">📡 MQTT-топики</button>
+    <button id="tab-mqtt-topics"               onclick="switchView('mqtt-topics')">📡 MQTT-топики</button>
+
   </div>
 
   <div id="bacnet-view" style="display:none;">
@@ -824,6 +828,63 @@
                       <div class="lua-snip-title">Со ссылкой на сайт</div>
                       <pre>pushover.send("Проверьте систему", "Уведомление", 0, nil, "http://192.168.1.100", "Открыть панель")</pre>
                     </details>
+              <!-- ===================== AI (Ollama) ===================== -->
+              <details>
+                <summary>🤖 AI (Ollama)</summary>
+      
+                <div class="lua-snip-title">Простой вопрос</div>
+                <pre>local res = ai.ask("Какая погода в Москве?")
+      if res.ok then
+          log("Ответ: " .. res.response)
+      end</pre>
+      
+                <div class="lua-snip-title">С системным промптом (роль)</div>
+                <pre>local res = ai.ask(
+          "Температура в комнате 22°C. Это комфортно?",
+          "Ты — умный дом. Отвечай кратко."
+      )
+      if res.ok then
+          tts.speak(res.response)
+      end</pre>
+      
+                <div class="lua-snip-title">Анализ данных датчиков</div>
+                <pre>local temp = devices.get("climate_1", "temp")
+      local hum = devices.get("climate_1", "humidity")
+      
+      local prompt = string.format(
+          "Температура %.1f°C, влажность %.1f%%. Дать совет по климату.",
+          temp, hum
+      )
+      
+      local res = ai.ask(prompt, "Отвечай как инженер-эколог.")
+      if res.ok then
+          log(res.response)
+      end</pre>
+              </details>
+      
+              <!-- ===================== TTS (Озвучка) ===================== -->
+              <details>
+                <summary>🗣️ TTS (Озвучка)</summary>
+      
+                <div class="lua-snip-title">Произнести текст</div>
+                <pre>tts.speak("Внимание! Температура в теплице достигла 30 градусов.")</pre>
+      
+                <div class="lua-snip-title">Озвучить ответ ИИ</div>
+                <pre>local res = ai.ask("Что такое умный дом?")
+      if res.ok then
+          tts.speak(res.response)
+      end</pre>
+      
+                <div class="lua-snip-title">Указать голос (если поддерживается)</div>
+                <pre>tts.speak("Доброе утро!", "female_calm")</pre>
+      
+                <div class="lua-snip-title">Обработка ошибок</div>
+                <pre>local res = tts.speak("Тест")
+      if not res.ok then
+          log("Ошибка TTS: " .. tostring(res.error))
+      end</pre>
+              </details>
+
               <!-- ===================== JSON ===================== -->
               <details>
                 <summary>🧩 JSON</summary>
@@ -945,6 +1006,8 @@
 
       <!-- Правая колонка -->
       <aside class="lua-sidebar">
+        <button class="btn small primary" style="width:100%;margin-bottom:.5rem;"
+  onclick="openLuaGenerateModal()">✨ Сгенерировать скрипт</button>
         <h3>📜 Все скрипты</h3>
         <input type="text" id="lua-search" placeholder="🔍 поиск…"
           oninput="renderLuaSidebar()"
@@ -1054,13 +1117,30 @@
 
   <!-- ============ Сценарии ============ -->
   <div id="scenarios-view">
-    <div class="hint">🧠 <b>Сценарий</b> = условия (AND/OR/NOT) → действия (THEN).</div>
+        <div class="hint">🧠 <b>Сценарий</b> = условия (AND/OR/NOT) → действия (THEN).</div>
     <div class="group-tabs" id="group-tabs"></div>
     <div class="toolbar" id="scenarios-toolbar">
       <button onclick="addGroup()">📁 Новая группа</button>
       <button onclick="addScenario()">➕ Новый сценарий</button>
+      <button class="btn primary" onclick="openScenarioGenModal()">✨ Создать сценарий с ИИ</button>
     </div>
     <div class="list" id="scenarios-list"></div>
+  </div>
+<!-- ============ Визуальный редактор ============ -->
+  <div id="visual-view" style="display:none;">
+    <div class="hint">
+      🧩 <b>Визуальный редактор</b>. Перетаскивайте блоки и соединяйте их линиями для создания сценария.
+    </div>
+    
+    <div class="toolbar" style="margin-bottom:1rem;">
+      <button class="btn primary" onclick="saveVisualScenario()">💾 Сохранить как сценарий</button>
+      <button class="btn gray" onclick="clearVisualCanvas()">🗑 Очистить холст</button>
+      <select id="visual-load-scenario" onchange="loadScenarioToVisual(this.value)" style="margin-left:auto;">
+        <option value="">— загрузить существующий —</option>
+      </select>
+    </div>
+    
+    <div id="drawflow" style="width:100%; height:600px; background:#0d1117; border-radius:12px; border:1px solid rgba(255,255,255,0.1);"></div>
   </div>
 
   <!-- ============ Таймеры ============ -->
@@ -1425,9 +1505,153 @@
       <div id="po-status" style="grid-column:1/-1;font-size:.85rem;opacity:.85;"></div>
     </div>
 
+    <!-- Ассистент (LLM + TTS) -->
+    <div class="hint" style="margin-top:1rem;">
+      🤖 <b>Ассистент</b>. Локальная LLM (Ollama) и синтез речи (xVibePocketTTS).
+    </div>
+    <div class="mqtt-form" id="assistant-form">
+      <div class="mqtt-field">
+        <label for="as-enabled">Включить ассистента</label>
+        <input type="checkbox" id="as-enabled">
+        <small>Разрешает вызовы <code>ai.ask()</code> и <code>tts.speak()</code> из Lua</small>
+      </div>
+
+      <div class="mqtt-field">
+        <label for="as-engine">Движок LLM</label>
+        <select id="as-engine" onchange="toggleDeepSeekKeyField(this.value)" style="width:100%; padding:.5rem; background:rgba(0,0,0,.45); color:#e6edf3; border:1px solid rgba(255,255,255,.14); border-radius:8px;">
+          <option value="ollama">Ollama (локально)</option>
+          <option value="deepseek">DeepSeek API (облако)</option>
+        </select>
+        <small>Где выполнять запросы к ИИ</small>
+      </div>
+
+      <div class="mqtt-field" id="as-deepseek-key-field" style="display:none;">
+        <label for="as-deepseek-key">DeepSeek API Key</label>
+        <input type="password" id="as-deepseek-key" placeholder="sk-..." style="width:100%;">
+        <small>Ключ с platform.deepseek.com</small>
+      </div>
+      
+      <div class="mqtt-field" style="grid-column: 1 / -1;">
+        <label style="font-weight:bold; margin-bottom:.5rem; display:block;">🧠 LLM (Ollama)</label>
+      </div>
+      
+       <!-- LLM Модель -->
+       <div class="mqtt-field">
+        
+        <label for="as-llm-model">Модель</label>
+        <select id="as-llm-model" style="width:100%; padding:.5rem; background:rgba(0,0,0,.45); color:#e6edf3; border:1px solid rgba(255,255,255,.14); border-radius:8px;">
+          <option value="">— загрузка… —</option>
+          </select>
+          <button class="btn small gray" onclick="loadOllamaModels()" title="Обновить список">🔄</button>
+        
+        <small>Список доступных моделей из Ollama</small>
+        
+      </div>
+      <div class="mqtt-field">
+        <label for="as-llm-url">API URL</label>
+        <input type="text" id="as-llm-url" placeholder="http://localhost:11434" style="width:250px;">
+        <small>По умолчанию http://localhost:11434</small>
+      </div>
+      <div class="mqtt-field">
+        <label for="as-llm-timeout">Таймаут (сек)</label>
+        <input type="number" id="as-llm-timeout" value="60" min="5" max="300" style="width:100px;">
+        <small>Сколько ждать ответа от LLM</small>
+      </div>
+      <div class="mqtt-field">
+        <label>Статус Ollama</label>
+        <div id="as-ollama-status" style="font-family:monospace; opacity:.8;">—</div>
+        <small id="as-ollama-hint" style="color:#ffb74d;"></small>
+      </div>
+
+      <div class="mqtt-field" style="grid-column: 1 / -1; margin-top:.5rem;">
+        <label style="font-weight:bold; margin-bottom:.5rem; display:block;">🗣️ TTS (xVibePocketTTS)</label>
+      </div>
+      
+      <!-- TTS Голос -->
+      <div class="mqtt-field">
+        <label for="as-tts-voice">Голос по умолчанию</label>
+        <select id="as-tts-voice" style="width:100%; padding:.5rem; background:rgba(0,0,0,.45); color:#e6edf3; border:1px solid rgba(255,255,255,.14); border-radius:8px;">
+          <option value="male_deep">male_deep (Мужской глубокий)</option>
+          <option value="female_silky">female_silky (Женский шелковистый)</option>
+          <option value="male_authoritative">male_authoritative (Мужской властный)</option>
+        </select>
+        <small>Доступные голоса xVibePocketTTS</small>
+      </div>
+      <div class="mqtt-field">
+        <label for="as-tts-timeout">Таймаут (сек)</label>
+        <input type="number" id="as-tts-timeout" value="120" min="10" max="600" style="width:100px;">
+        <small>Сколько ждать синтеза речи</small>
+      </div>
+      <div class="mqtt-field">
+        <label for="as-tts-path">Путь к xvibe-tts</label>
+        <input type="text" id="as-tts-path" placeholder="xvibe-tts" style="width:250px;">
+        <small>Команда или полный путь к исполняемому файлу</small>
+      </div>
+      <div class="mqtt-field">
+        <label>Статус TTS</label>
+        <div id="as-tts-status" style="font-family:monospace; opacity:.8;">—</div>
+        <small id="as-tts-hint" style="color:#ffb74d;"></small>
+      </div>
+
+      <div class="mqtt-field mqtt-actions" style="grid-column: 1 / -1; flex-direction:row; gap:.5rem; margin-top:.5rem;">
+        <button onclick="saveAssistantSettings()">💾 Сохранить</button>
+        <button class="btn gray" onclick="checkAssistantStatus()">🔄 Проверить компоненты</button>
+        <button class="btn gray" onclick="testAssistant()">🧪 Тест</button>
+      </div>
+      <div id="as-test-result" style="grid-column:1/-1;font-size:.85rem;opacity:.85;"></div>
+    </div>
+
   </div><!-- /system-view -->
 
 </div><!-- /edit-ui -->
+
+<!-- Модалка: Генерация сценария -->
+<div class="modal-overlay" id="scenario-gen-overlay"
+     onclick="if (event.target === this) closeScenarioGenModal()">
+  <div class="modal" style="max-width:600px; width:100%;">
+    <button class="modal-close" onclick="closeScenarioGenModal()" title="Закрыть">✕</button>
+    <div style="padding:1.2rem;">
+      <h3 style="margin:0 0 .8rem;">✨ Создание сценария с ИИ</h3>
+      <p style="font-size:.9rem;opacity:.8;margin-bottom:.8rem;">
+        Опишите, что должен делать сценарий. ИИ проанализирует ваши устройства и сгенерирует готовый JSON.
+      </p>
+      
+      <textarea id="scenario-gen-desc" placeholder="Например: Если я ухожу (датчик движения не видит движения 5 минут), выключи весь свет и закрой краны." 
+        style="width:100%; min-height:100px; padding:.6rem; border-radius:10px; border:1px solid rgba(255,255,255,.14); background:rgba(0,0,0,.45); color:#e6edf3; font-family:inherit; resize:vertical;"></textarea>
+      
+      <div id="scenario-gen-status" style="font-size:.85rem; margin-top:.5rem; min-height:1.2em;"></div>
+      
+      <div class="actions" style="margin-top:1rem; display:flex; gap:.5rem; justify-content:flex-end;">
+        <button class="btn gray" onclick="closeScenarioGenModal()">Отмена</button>
+        <button class="btn primary" id="scenario-gen-btn" onclick="generateScenario()">✨ Сгенерировать</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка: Генерация Lua-скрипта -->
+<div class="modal-overlay" id="lua-gen-overlay"
+     onclick="if (event.target === this) closeLuaGenerateModal()">
+  <div class="modal" style="max-width:600px; width:100%;">
+    <button class="modal-close" onclick="closeLuaGenerateModal()" title="Закрыть">✕</button>
+    <div style="padding:1.2rem;">
+      <h3 style="margin:0 0 .8rem;">✨ Генерация Lua-скрипта</h3>
+      <p style="font-size:.9rem;opacity:.8;margin-bottom:.8rem;">
+        Опишите, что должен делать скрипт. ИИ проанализирует ваши устройства и напишет код.
+      </p>
+      
+      <textarea id="lua-gen-desc" placeholder="Например: Если температура в гостиной выше 25 градусов, включи кондиционер и отправь уведомление 'Жарко!'" 
+        style="width:100%; min-height:100px; padding:.6rem; border-radius:10px; border:1px solid rgba(255,255,255,.14); background:rgba(0,0,0,.45); color:#e6edf3; font-family:inherit; resize:vertical;"></textarea>
+      
+      <div id="lua-gen-status" style="font-size:.85rem; margin-top:.5rem; min-height:1.2em;"></div>
+      
+      <div class="actions" style="margin-top:1rem; display:flex; gap:.5rem; justify-content:flex-end;">
+        <button class="btn gray" onclick="closeLuaGenerateModal()">Отмена</button>
+        <button class="btn primary" id="lua-gen-btn" onclick="generateLuaScript()">✨ Сгенерировать</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ============================================================
      Скрипты: подключаем по порядку
@@ -1453,7 +1677,7 @@
 <script src="{{ url_for('static', filename='ui/lua.js') }}"></script>
 <script src="{{ url_for('static', filename='ui/logs.js') }}"></script>
 <script src="{{ url_for('static', filename='ui/system.js') }}"></script>
-
+<script src="{{ url_for('static', filename='ui/visual.js') }}"></script>
 <!-- 4. Сторонние генераторы -->
 <script src="{{ url_for('static', filename='sh-common.js') }}"></script>
 <script src="{{ url_for('static', filename='sh-nodered-ws.js') }}"></script>
