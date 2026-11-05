@@ -812,3 +812,249 @@ async function testPushover() {
     if (st) { st.textContent = '❌ Ошибка: ' + e.message; st.style.color = '#ef5350'; }
   }
 }
+
+async function loadAssistantSettings() {
+  try {
+    const cfg = await api('/api/settings/assistant');
+    console.log('[assistant] loaded:', cfg); // отладка
+
+    const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+    const setChk = (id, v) => { const el = document.getElementById(id); if (el) el.checked = !!v; };
+
+    setChk('as-enabled', cfg.enabled);
+    
+    // Движок и ключ — устанавливаем в первую очередь, чтобы они точно применились
+    const engine = cfg.engine || 'ollama';
+    setVal('as-engine', engine);
+    setVal('as-deepseek-key', cfg.deepseek_key || '');
+    toggleDeepSeekKeyField(engine);
+    
+    // Остальное
+    setVal('as-llm-url', cfg.llm_url);
+    setVal('as-llm-timeout', cfg.llm_timeout);
+    setVal('as-tts-voice', cfg.tts_voice);
+    setVal('as-tts-timeout', cfg.tts_timeout);
+    setVal('as-tts-path', cfg.tts_path);
+    
+    // Загрузка моделей Ollama (может упасть, если Ollama не запущена — это не критично)
+    try {
+      const modelSel = document.getElementById('as-llm-model');
+      if (modelSel) modelSel.dataset.selected = cfg.llm_model;
+      await loadOllamaModels();
+    } catch (e) {
+      console.warn('[assistant] load models error (не критично):', e);
+    }
+    
+    try {
+      await checkAssistantStatus();
+    } catch (e) {
+      console.warn('[assistant] check status error:', e);
+    }
+  } catch (e) {
+    console.warn('[assistant] load error:', e);
+  }
+}
+
+async function saveAssistantSettings() {
+  const body = {
+    enabled: !!document.getElementById('as-enabled')?.checked,
+    engine: document.getElementById('as-engine')?.value || 'ollama',
+    deepseek_key: document.getElementById('as-deepseek-key')?.value || '',
+    llm_model: document.getElementById('as-llm-model')?.value || 'qwen2.5',
+    llm_url: document.getElementById('as-llm-url')?.value || 'http://localhost:11434',
+    llm_timeout: parseInt(document.getElementById('as-llm-timeout')?.value || '60', 10),
+    tts_voice: document.getElementById('as-tts-voice')?.value || 'male_deep',
+    tts_timeout: parseInt(document.getElementById('as-tts-timeout')?.value || '120', 10),
+    tts_path: document.getElementById('as-tts-path')?.value || 'xvibe-tts',
+  };
+  
+  try {
+    await api('/api/settings/assistant', 'POST', body);
+    alert('Настройки ассистента сохранены');
+    await checkAssistantStatus();
+  } catch (e) {
+    alert('Ошибка: ' + e.message);
+  }
+}
+
+async function checkAssistantStatus() {
+  const ollamaEl = document.getElementById('as-ollama-status');
+  const ollamaHint = document.getElementById('as-ollama-hint');
+  const ttsEl = document.getElementById('as-tts-status');
+  const ttsHint = document.getElementById('as-tts-hint');
+
+  try {
+    const st = await api('/api/settings/assistant/status');
+    
+    // Ollama
+    if (st.ollama.available) {
+      ollamaEl.textContent = `✅ ${st.ollama.version || 'доступен'}`;
+      ollamaEl.style.color = '#4caf50';
+      ollamaHint.textContent = '';
+    } else {
+      ollamaEl.textContent = '❌ Не найден';
+      ollamaEl.style.color = '#ef5350';
+      ollamaHint.textContent = 'Установите Ollama: https://ollama.com/download';
+    }
+    
+    // TTS
+    if (st.tts.available) {
+      ttsEl.textContent = `✅ ${st.tts.version || 'доступен'}`;
+      ttsEl.style.color = '#4caf50';
+      ttsHint.textContent = '';
+    } else {
+      ttsEl.textContent = '❌ Не найден';
+      ttsEl.style.color = '#ef5350';
+      ttsHint.textContent = 'Установите xVibePocketTTS или укажите полный путь к xvibe-tts';
+    }
+  } catch (e) {
+    if (ollamaEl) ollamaEl.textContent = '⚠ Ошибка проверки';
+    if (ttsEl) ttsEl.textContent = '⚠ Ошибка проверки';
+  }
+}
+
+async function testAssistant() {
+  const resEl = document.getElementById('as-test-result');
+  if (resEl) { resEl.textContent = '⏳ Тестирование…'; resEl.style.color = '#ffb74d'; }
+  
+  try {
+    const r = await api('/api/settings/assistant/test', 'POST', {});
+    let msg = '';
+    if (r.llm && r.llm.ok) {
+      msg += `✅ LLM: ${r.llm.response.substring(0, 50)}… `;
+    } else {
+      msg += `❌ LLM: ${r.llm?.error || 'ошибка'} `;
+    }
+    if (r.tts && r.tts.ok) {
+      msg += `| ✅ TTS: OK`;
+    } else {
+      msg += `| ❌ TTS: ${r.tts?.error || 'ошибка'}`;
+    }
+    if (resEl) { resEl.textContent = msg; resEl.style.color = '#fff'; }
+  } catch (e) {
+    if (resEl) { resEl.textContent = '❌ Ошибка: ' + e.message; resEl.style.color = '#ef5350'; }
+  }
+}
+
+async function loadOllamaModels() {
+  const sel = document.getElementById('as-llm-model');
+  if (!sel) return;
+  
+  sel.innerHTML = '<option value="">— загрузка… —</option>';
+  
+  try {
+    const res = await api('/api/settings/assistant/llm_models');
+    if (res.ok && res.models.length > 0) {
+      // Сохраняем текущее выбранное значение, чтобы восстановить его после обновления
+      const currentVal = sel.dataset.selected || res.models[0];
+      
+      sel.innerHTML = res.models.map(m => 
+        `<option value="${esc(m)}" ${m === currentVal ? 'selected' : ''}>${esc(m)}</option>`
+      ).join('');
+      
+      if (!res.models.includes(currentVal)) {
+        sel.innerHTML += `<option value="${esc(currentVal)}" selected>${esc(currentVal)} (не найдена)</option>`;
+      }
+    } else {
+      sel.innerHTML = '<option value="">— нет доступных моделей —</option>';
+      if (res.error) {
+        sel.innerHTML += `<option value="" disabled>Ошибка: ${esc(res.error)}</option>`;
+      }
+    }
+  } catch (e) {
+    sel.innerHTML = `<option value="">— ошибка загрузки —</option>`;
+    console.warn('[assistant] load models error:', e);
+  }
+}
+
+async function loadAssistantSettings() {
+  try {
+    const cfg = await api('/api/settings/assistant');
+    
+    // Отладка: посмотрите в консоли, что пришло с сервера
+    console.log('[assistant] loaded config:', cfg);
+
+    const setVal = (id, v) => { 
+      const el = document.getElementById(id); 
+      if (el) {
+        el.value = v;
+        // Для select принудительно триггерим change, чтобы сработал onchange (если нужно)
+        if (el.tagName === 'SELECT') {
+          el.dispatchEvent(new Event('change'));
+        }
+      } else {
+        console.warn(`[assistant] элемент #${id} не найден`);
+      }
+    };
+    const setChk = (id, v) => { 
+      const el = document.getElementById(id); 
+      if (el) el.checked = !!v; 
+    };
+
+    // 1. Включение/выключение
+    setChk('as-enabled', cfg.enabled);
+    
+    // 2. Движок (ВАЖНО: делаем это ДО загрузки моделей, чтобы не зависеть от Ollama)
+    const engine = cfg.engine || 'ollama';
+    setVal('as-engine', engine);
+    toggleDeepSeekKeyField(engine);
+    
+    // 3. Ключ DeepSeek
+    setVal('as-deepseek-key', cfg.deepseek_key || '');
+    
+    // 4. Остальные поля
+    setVal('as-llm-url', cfg.llm_url);
+    setVal('as-llm-timeout', cfg.llm_timeout);
+    setVal('as-tts-voice', cfg.tts_voice);
+    setVal('as-tts-timeout', cfg.tts_timeout);
+    setVal('as-tts-path', cfg.tts_path);
+    
+    // 5. Загрузка моделей Ollama (в самом конце, чтобы не блокировать остальное)
+    try {
+      const modelSel = document.getElementById('as-llm-model');
+      if (modelSel) modelSel.dataset.selected = cfg.llm_model;
+      await loadOllamaModels();
+    } catch (e) {
+      console.warn('[assistant] load models error (не критично):', e);
+    }
+    
+    // 6. Проверка статуса
+    try {
+      await checkAssistantStatus();
+    } catch (e) {
+      console.warn('[assistant] check status error:', e);
+    }
+  } catch (e) {
+    console.warn('[assistant] load error:', e);
+  }
+}
+
+// При сохранении берем значение из select
+async function saveAssistantSettings() {
+  const body = {
+    enabled: !!document.getElementById('as-enabled')?.checked,
+    engine: document.getElementById('as-engine')?.value || 'ollama',          
+    deepseek_key: document.getElementById('as-deepseek-key')?.value || '',   
+    llm_model: document.getElementById('as-llm-model')?.value || 'qwen2.5',
+    llm_url: document.getElementById('as-llm-url')?.value || 'http://localhost:11434',
+    llm_timeout: parseInt(document.getElementById('as-llm-timeout')?.value || '60', 10),
+    tts_voice: document.getElementById('as-tts-voice')?.value || 'male_deep',
+    tts_timeout: parseInt(document.getElementById('as-tts-timeout')?.value || '120', 10),
+    tts_path: document.getElementById('as-tts-path')?.value || 'xvibe-tts',
+  };
+  
+  try {
+    await api('/api/settings/assistant', 'POST', body);
+    alert('Настройки ассистента сохранены');
+    await checkAssistantStatus();
+  } catch (e) {
+    alert('Ошибка: ' + e.message);
+  }
+}
+
+function toggleDeepSeekKeyField(engine) {
+  const field = document.getElementById('as-deepseek-key-field');
+  if (field) {
+    field.style.display = (engine === 'deepseek') ? 'block' : 'none';
+  }
+}
