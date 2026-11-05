@@ -753,3 +753,62 @@ async function testTelegram() {
     if (st) st.textContent = '❌ ' + e.message;
   }
 }
+
+async function loadPushoverSettings() {
+  try {
+    const cfg = await api('/api/settings/pushover');
+    const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+    const setChk = (id, v) => { const el = document.getElementById(id); if (el) el.checked = !!v; };
+
+    setChk('po-enabled', cfg.enabled);
+    setVal('po-user', cfg.user_key || '');
+    setVal('po-token', cfg.token_masked || '');
+
+    const st = document.getElementById('po-status');
+    if (st) {
+      if (cfg.enabled) {
+        st.textContent = '✅ Включено';
+        st.style.color = '#4caf50';
+      } else {
+        st.textContent = 'Pushover выключен';
+        st.style.color = '#bbb';
+      }
+    }
+  } catch (e) {
+    console.warn('[pushover] load error:', e);
+  }
+}
+
+async function savePushoverSettings() {
+  const body = {
+    enabled: !!document.getElementById('po-enabled')?.checked,
+    user_key: document.getElementById('po-user')?.value || '',
+    token: document.getElementById('po-token')?.value || '',
+  };
+  try {
+    await api('/api/settings/pushover', 'POST', body);
+    await loadPushoverSettings();
+    alert('Настройки Pushover сохранены');
+  } catch (e) {
+    alert('Ошибка: ' + e.message);
+  }
+}
+
+async function testPushover() {
+  const st = document.getElementById('po-status');
+  if (st) { st.textContent = '⏳ Отправка теста…'; st.style.color = '#ffb74d'; }
+  try {
+    const res = await api('/api/settings/pushover/test', 'POST', {});
+    if (st) {
+      if (res.ok) {
+        st.textContent = '✅ Тест отправлен!';
+        st.style.color = '#4caf50';
+      } else {
+        st.textContent = '❌ Ошибка: ' + (res.error || 'неизвестно');
+        st.style.color = '#ef5350';
+      }
+    }
+  } catch (e) {
+    if (st) { st.textContent = '❌ Ошибка: ' + e.message; st.style.color = '#ef5350'; }
+  }
+}
