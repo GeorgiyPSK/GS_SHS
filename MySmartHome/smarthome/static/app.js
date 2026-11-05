@@ -100,7 +100,7 @@ function renderCurrentView() {
 function switchView(v) {
   currentView = v;
   ['grid','plan','unassigned','events','scenarios','timers','system',
-   'mqtt-triggers','lua','knx-ga','bacnet', 'mqtt-topics']
+   'mqtt-triggers','lua','knx-ga','bacnet', 'mqtt-topics', 'visual']
     .forEach(k => {
       const tab = document.getElementById('tab-' + k);
       if (tab) tab.classList.toggle('active', k === v);
@@ -123,6 +123,18 @@ function switchView(v) {
       api('/api/scenarios'),
     ]).then(([t, s]) => { mqttTriggersCache = t; scenariosCache = s; }),
   };
+  if (v === 'visual') {
+    window._visualCurrentScenarioId = null;
+    if (typeof initVisualEditor === 'function') initVisualEditor();
+    setTimeout(() => {
+      // Drawflow не имеет метода resize в некоторых версиях.
+      // Если нужно пересчитать, можно вызвать editor.zoom_refresh() или просто проигнорировать.
+      // Главное — загрузить список сценариев.
+      if (typeof loadScenariosToVisualSelect === 'function') {
+        loadScenariosToVisualSelect();
+      }
+    }, 100);
+  }
   if (v === 'mqtt-topics' && typeof loadMqttTopics === 'function') {
     loadMqttTopics().catch(() => {});
   }
@@ -148,10 +160,12 @@ function switchView(v) {
     loadKnxSettings().catch(() => {});
   //  loadUsers().catch(() => {});
   //  loadCustomTypes().catch(() => {});
-    updateNotifyPermStatus();
-    refreshLogsList?.();
+  setTimeout(() => {
+    if (typeof loadAssistantSettings === 'function') loadAssistantSettings();
+    if (typeof loadPushoverSettings === 'function') loadPushoverSettings();
     if (typeof loadTelegramSettings === 'function') loadTelegramSettings();
-  }
+  }, 100);
+}
 
   try { renderCurrentView(); }
   catch (e) { console.error('[switchView] renderCurrentView error:', e); }
