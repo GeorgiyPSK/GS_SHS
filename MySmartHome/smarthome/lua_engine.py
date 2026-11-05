@@ -88,7 +88,14 @@ def _api_device_set(dev_id, field, value):
 
 
 def _api_device_list():
-    return {did: d.get("name", did) for did, d in state["devices"].items()}
+    # Создаём таблицу Lua вручную через текущий runtime
+    global _runtime
+    if _runtime is None:
+        return {}
+    tbl = _runtime.table()
+    for did, d in state["devices"].items():
+        tbl[did] = d.get("name", did)
+    return tbl
 
 
 def _api_knx_read(dev_id, field):
@@ -516,6 +523,11 @@ def _build_lua_env(rt):
     tg_tbl["me"]            = _api_telegram_me
     g["telegram"] = tg_tbl
     
+    # --- pushover ---
+    po_tbl = rt.table()
+    po_tbl["send"] = _api_pushover_send
+    g["pushover"] = po_tbl
+
     # --- json ---
     json_tbl = rt.table()
     json_tbl["decode"] = _api_json_decode
@@ -748,3 +760,70 @@ def _lua_to_py(obj, _depth=0):
         return {k: _lua_to_py(v, _depth + 1) for k, v in obj.items()}
 
     return obj
+
+# ============================================================
+# Pushover
+# ============================================================
+
+def _pushover_config():
+    """Возвращает (enabled, user_key, token)."""
+    try:
+        from state import state
+        po = (state.get("settings", {}) or {}).get("pushover", {}) or {}
+        return (
+            bool(po.get("enabled")),
+            (po.get("user_key") or "").strip(),
+            (po.get("token") or "").strip(),
+        )
+    except Exception:
+        return (False, "", "")
+
+
+def _api_pushover_send(message, title=None, priority=0, sound=None, url=None, url_title=None):
+    """
+    Отправить push-уведомление через Pushover.
+    Возвращает {"ok": True/False, ...}
+    """
+    enabled, user_key, token = _pushover_config()
+    if not enabled:
+        return {"ok": False, "error": "Pushover отключён в настройках"}
+    if not user_key or not token:
+        return {"ok": False, "error": "Pushover: не заданы user_key или token"}
+
+    url_api = "https://api.pushover.net/1/messages.json"
+    payload = {
+        "token": token,
+        "user": user_key,
+        "message": str(message),
+    }
+    if title:
+        payload["title"] = str(title)
+    if priority is not None:
+        payload["priority"] = int(priority)
+    if sound:
+        payload["sound"] = str(sound)
+    if url:
+        payload["url"] = str(url)
+    if url_title:
+        payload["url_title"] = str(url_title)
+
+    import urllib.request
+    import urllib.parse
+    data = urllib.parse.urlencode(payload).encode("utf-8")
+    req = urllib.request.Request(
+        url_api,
+        data=data,
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            body = resp.read().decode("utf-8", errors="replace")
+            parsed = _json.loads(body) if body else {}
+            if parsed.get("status") == 1:
+                return {"ok": True, "result": parsed}
+            return {"ok": False, "error": parsed.get("errors") or "Pushover API error"}
+    except Exception as e:
+        log.warning("[lua] pushover.send error: %s", e)
+        return {"ok": False, "error": str(e)}
