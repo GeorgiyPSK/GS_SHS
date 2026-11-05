@@ -4,6 +4,9 @@ import json as _json
 import urllib.request
 import urllib.error
 import time
+import subprocess
+
+
 
 
 def _api_http_get(url, timeout=10):
@@ -468,6 +471,15 @@ def _api_notify(title, body, level="info"):
 
 def _build_lua_env(rt):
     g = rt.globals()
+    # --- ai ---
+    ai_tbl = rt.table()
+    ai_tbl["ask"] = _api_ai_ask
+    g["ai"] = ai_tbl
+
+    # --- tts ---
+    tts_tbl = rt.table()
+    tts_tbl["speak"] = _api_tts_speak
+    g["tts"] = tts_tbl
 
     # --- time ---
     time_tbl = rt.table()
@@ -827,3 +839,207 @@ def _api_pushover_send(message, title=None, priority=0, sound=None, url=None, ur
     except Exception as e:
         log.warning("[lua] pushover.send error: %s", e)
         return {"ok": False, "error": str(e)}
+
+# ============================================================
+# AI (Ollama), deepseek и TTS (xVibePocketTTS)
+# ============================================================
+
+def _api_ai_ask(prompt, system_prompt=None):
+    cfg = (state.get("settings", {}) or {}).get("assistant", {}) or {}
+    if not cfg.get("enabled", True):
+        return {"ok": False, "error": "Ассистент отключён в настройках"}
+
+    engine = cfg.get("engine", "ollama")
+    
+    if engine == "deepseek":
+        # --- DeepSeek API ---
+        import urllib.request
+        import json as _json
+        
+        api_key = cfg.get("deepseek_key", "").strip()
+        if not api_key:
+            return {"ok": False, "error": "DeepSeek API Key не задан"}
+        
+        url = "https://api.deepseek.com/chat/completions"
+        model = "deepseek-flash" # или deepseek-v4-pro
+        
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+        
+        payload = {
+            "model": model,
+            "messages": messages,
+            "stream": False
+        }
+        
+        data = _json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            url, data=data,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}"
+            },
+            method="POST"
+        )
+        
+        try:
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                body = resp.read().decode("utf-8")
+                parsed = _json.loads(body)
+                answer = parsed["choices"][0]["message"]["content"].strip()
+                return {"ok": True, "response": answer}
+        except Exception as e:
+            log.warning("[lua] ai.ask (deepseek) error: %s", e)
+            return {"ok": False, "error": str(e)}
+
+    else:
+        # --- Ollama (локально) ---
+        import urllib.request
+        import json as _json
+        
+        base_url = cfg.get("llm_url", "http://localhost:11434").rstrip("/")
+        url = f"{base_url}/api/generate"
+        model = cfg.get("llm_model", "qwen2.5")
+        timeout = int(cfg.get("llm_timeout", 60))
+
+        full_prompt = prompt
+        if system_prompt:
+            full_prompt = f"{system_prompt}\n\nПользователь: {prompt}\nАссистент:"
+
+        payload = {
+            "model": model,
+            "prompt": full_prompt,
+            "stream": False
+        }
+        data = _json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        req = urllib.request.Request(
+            url, data=data,
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                body = resp.read().decode("utf-8")
+                parsed = _json.loads(body)
+                answer = parsed.get("response", "").strip()
+                return {"ok": True, "response": answer}
+        except Exception as e:
+            log.warning("[lua] ai.ask (ollama) error: %s", e)
+            return {"ok": False, "error": str(e)}
+
+
+def _api_tts_speak(text, voice=None):
+    """
+    Синтезирует речь через xVibePocketTTS и воспроизводит её.
+    Берет настройки из state["settings"]["assistant"].
+    Возвращает {"ok": True/False, ...}
+    """
+    import os
+    import tempfile
+    import platform
+    import subprocess
+
+    # 1. Проверяем, включён ли ассистент
+    cfg = (state.get("settings", {}) or {}).get("assistant", {}) or {}
+    if not cfg.get("enabled", True):
+        return {"ok": False, "error": "Ассистент отключён в настройках"}
+
+     # 2. Берем параметры из настроек
+    voice = voice or cfg.get("tts_voice", "male_deep")
+    # Проверяем, что голос существует
+    allowed_voices = {"male_deep", "female_silky", "male_authoritative"}
+    if voice not in allowed_voices:
+        log.warning("[lua] tts.speak: неизвестный голос '%s', использую male_deep", voice)
+        voice = "male_deep"
+    timeout = int(cfg.get("tts_timeout", 120))
+    cmd_path = cfg.get("tts_path", "xvibe-tts")
+
+    # 3. Ограничиваем длину текста (защита от очень длинных ответов LLM)
+    text = str(text)[:500]
+
+    # 4. Создаём временный файл для WAV
+    fd, path = tempfile.mkstemp(suffix=".wav")
+    os.close(fd)
+
+    try:
+        # 5. Формируем команду для xvibe-tts
+        cmd = [
+            cmd_path,
+            "generate",
+            "--text", text,
+            "--voice", voice,
+            "--output", path
+        ]
+
+        # 6. Запускаем синтез
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            encoding="utf-8",
+            errors="replace"
+        )
+
+        # 7. Если процесс завершился с ошибкой
+        if result.returncode != 0:
+            log.warning("[lua] tts.speak error: %s", result.stderr)
+            return {"ok": False, "error": result.stderr or "TTS generation failed"}
+
+        # 8. Воспроизведение звука в зависимости от ОС
+        os_name = platform.system()
+        
+        if os_name == "Windows":
+            import winsound
+            # SND_FILENAME — играть файл, SND_SYNC — ждать окончания (если нужно асинхронно, используйте SND_ASYNC)
+            winsound.PlaySound(path, winsound.SND_FILENAME)
+            
+        elif os_name == "Darwin":  # macOS
+            subprocess.run(["afplay", path], check=False)
+            
+        else:  # Linux
+            # Пытаемся использовать aplay или paplay
+            played = False
+            for player in ["aplay", "paplay", "play"]:
+                try:
+                    subprocess.run([player, path], check=True, capture_output=True)
+                    played = True
+                    break
+                except Exception:
+                    continue
+            if not played:
+                log.info("[lua] TTS saved to %s (playback not implemented for this OS)", path)
+                # Не удаляем файл, чтобы можно было послушать вручную
+                return {"ok": True, "file": path}
+
+        # 9. Удаляем временный файл после успешного проигрывания (только для Windows/Mac, если не вернули путь)
+        if os_name in ("Windows", "Darwin"):
+            if os.path.exists(path):
+                try:
+                    os.remove(path)
+                except Exception:
+                    pass
+            return {"ok": True}
+
+    except subprocess.TimeoutExpired:
+        log.warning("[lua] tts.speak: timeout after %s seconds", timeout)
+        return {"ok": False, "error": f"Таймаут синтеза речи ({timeout} сек)"}
+
+    except FileNotFoundError:
+        log.warning("[lua] tts.speak: command not found: %s", cmd_path)
+        return {"ok": False, "error": f"Команда не найдена: {cmd_path}. Проверьте путь в настройках."}
+
+    except Exception as e:
+        log.warning("[lua] tts.speak error: %s", e)
+        return {"ok": False, "error": str(e)}
+
+    finally:
+        # Если файл всё ещё существует (например, при ошибке), пробуем удалить
+        if os.path.exists(path):
+            try:
+                os.remove(path)
+            except Exception:
+                pass
