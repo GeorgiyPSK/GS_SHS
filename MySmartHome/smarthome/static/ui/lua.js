@@ -769,3 +769,65 @@ function luaInsertSnippet(text) {
      _luaDevicesCache = null;
      renderLuaDevicesList(true);
    });
+
+   function openLuaGenerateModal() {
+    const overlay = document.getElementById('lua-gen-overlay');
+    if (!overlay) return;
+    document.getElementById('lua-gen-desc').value = '';
+    document.getElementById('lua-gen-status').textContent = '';
+    overlay.classList.add('open');
+    document.getElementById('lua-gen-desc').focus();
+  }
+  
+  function closeLuaGenerateModal() {
+    const overlay = document.getElementById('lua-gen-overlay');
+    if (overlay) overlay.classList.remove('open');
+  }
+  
+  async function generateLuaScript() {
+    const desc = document.getElementById('lua-gen-desc').value.trim();
+    const statusEl = document.getElementById('lua-gen-status');
+    const btn = document.getElementById('lua-gen-btn');
+    
+    if (!desc) {
+      statusEl.textContent = '⚠ Введите описание задачи';
+      statusEl.style.color = '#ffb74d';
+      return;
+    }
+  
+    statusEl.textContent = '⏳ Думаю... (это может занять 10-30 секунд)';
+    statusEl.style.color = '#4fc3f7';
+    btn.disabled = true;
+    btn.textContent = '⏳...';
+  
+    try {
+      const res = await api('/api/lua/generate', 'POST', { description: desc });
+      
+      if (res.ok && res.code) {
+        // Вставляем код в редактор
+        const editor = document.querySelector('.lua-input');
+        if (editor) {
+          editor.value = res.code;
+          // Триггерим событие input, чтобы обновилась подсветка
+          editor.dispatchEvent(new Event('input'));
+          // Помечаем как "грязный"
+          if (typeof _luaEditorDirty !== 'undefined') _luaEditorDirty = true;
+        }
+        
+        statusEl.textContent = '✅ Скрипт сгенерирован!';
+        statusEl.style.color = '#4caf50';
+        
+        setTimeout(() => {
+          closeLuaGenerateModal();
+        }, 800);
+      } else {
+        throw new Error(res.error || 'Неизвестная ошибка');
+      }
+    } catch (e) {
+      statusEl.textContent = '❌ Ошибка: ' + e.message;
+      statusEl.style.color = '#ef5350';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '✨ Сгенерировать';
+    }
+  }
