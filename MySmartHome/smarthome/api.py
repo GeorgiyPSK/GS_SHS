@@ -2971,3 +2971,44 @@ def device_bacnet(did):
         return jsonify({"ok": True, "links": dev_links})
 
     return jsonify(dev_links)
+
+# ============================================================
+# Pushover настройки
+# ============================================================
+
+@api.route("/settings/pushover", methods=["GET"])
+def api_get_pushover_settings():
+    po = (state.get("settings", {}) or {}).get("pushover", {}) or {}
+    token = po.get("token") or ""
+    masked = (token[:4] + "…" + token[-4:]) if len(token) > 8 else ("•••" if token else "")
+    return jsonify({
+        "enabled": bool(po.get("enabled")),
+        "user_key": po.get("user_key") or "",
+        "token_masked": masked,
+        "has_token": bool(token),
+    })
+
+
+@api.route("/settings/pushover", methods=["POST"])
+def api_save_pushover_settings():
+    data = request.get_json(force=True) or {}
+    po = state.setdefault("settings", {}).setdefault("pushover", {})
+
+    if "enabled" in data:
+        po["enabled"] = bool(data["enabled"])
+    if "user_key" in data:
+        po["user_key"] = str(data["user_key"] or "").strip()
+
+    new_token = (data.get("token") or "").strip()
+    if new_token and "…" not in new_token and "•" not in new_token:
+        po["token"] = new_token
+
+    save_state()
+    return jsonify({"ok": True})
+
+
+@api.route("/settings/pushover/test", methods=["POST"])
+def api_pushover_test():
+    import lua_engine
+    res = lua_engine._api_pushover_send("Тест из GS Smart")
+    return jsonify(res)
