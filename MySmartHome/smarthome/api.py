@@ -901,6 +901,7 @@ def scenarios_add():
          "initial_delay": float(body.get("initial_delay", 0) or 0),
         "conditions": body.get("conditions", []),
         "actions": body.get("actions", []),
+        "visual_data": body.get("visual_data"),
     }
     save_state()
     return jsonify(state["scenarios"][sid]), 201
@@ -912,7 +913,7 @@ def scenarios_update(sid):
     if not sc:
         return jsonify({"error": "not found"}), 404
     body = request.get_json(silent=True) or {}
-    for k in ("name", "enabled", "logic", "conditions", "actions", "group", "initial_delay"):
+    for k in ("name", "enabled", "logic", "conditions", "actions", "group", "initial_delay", "visual_data"):
         if k in body:
             sc[k] = body[k]
     save_state()
@@ -3015,3 +3016,341 @@ def api_pushover_test():
     import lua_engine
     res = lua_engine._api_pushover_send("Тест из GS Smart")
     return jsonify(res)
+
+# ============================================================
+# Настройки ассистента (LLM + TTS)
+# ============================================================
+
+@api.route("/settings/assistant", methods=["GET"])
+def api_get_assistant_settings():
+    cfg = (state.get("settings", {}) or {}).get("assistant", {}) or {}
+    return jsonify({
+        "enabled": bool(cfg.get("enabled")),
+        "llm_model": cfg.get("llm_model") or "qwen2.5",
+        "llm_url": cfg.get("llm_url") or "http://localhost:11434",
+        "llm_timeout": int(cfg.get("llm_timeout", 60)),
+        "tts_voice": cfg.get("tts_voice") or "male_deep",
+        "tts_timeout": int(cfg.get("tts_timeout", 120)),
+        "tts_path": cfg.get("tts_path") or "xvibe-tts",
+        "engine": cfg.get("engine", "ollama"),           # <-- ДОЛЖНО БЫТЬ
+        "deepseek_key": cfg.get("deepseek_key", ""),    # <-- ДОЛЖНО БЫТЬ
+    })
+
+
+@api.route("/settings/assistant", methods=["POST"])
+def api_save_assistant_settings():
+    data = request.get_json(force=True) or {}
+    cfg = state.setdefault("settings", {}).setdefault("assistant", {})
+
+    if "enabled" in data:
+        cfg["enabled"] = bool(data["enabled"])
+    if "engine" in data:                                # <-- ДОЛЖНО БЫТЬ
+        cfg["engine"] = data["engine"]
+    if "deepseek_key" in data:                          # <-- ДОЛЖНО БЫТЬ
+        cfg["deepseek_key"] = data["deepseek_key"]
+    if "llm_model" in data:
+        cfg["llm_model"] = str(data["llm_model"] or "qwen2.5").strip()
+    if "llm_url" in data:
+        cfg["llm_url"] = str(data["llm_url"] or "http://localhost:11434").strip()
+    if "llm_timeout" in data:
+        try:
+            cfg["llm_timeout"] = max(5, min(300, int(data["llm_timeout"])))
+        except (TypeError, ValueError):
+            pass
+    if "tts_voice" in data:
+        cfg["tts_voice"] = str(data["tts_voice"] or "male_deep").strip()
+    if "tts_timeout" in data:
+        try:
+            cfg["tts_timeout"] = max(10, min(600, int(data["tts_timeout"])))
+        except (TypeError, ValueError):
+            pass
+    if "tts_path" in data:
+        cfg["tts_path"] = str(data["tts_path"] or "xvibe-tts").strip()
+
+    save_state()
+    return jsonify({"ok": True})
+
+
+@api.route("/settings/assistant/status", methods=["GET"])
+def api_assistant_status():
+    import shutil
+    import subprocess
+
+    # Проверка Ollama
+    ollama_ok = shutil.which("ollama") is not None
+    ollama_ver = ""
+    if ollama_ok:
+        try:
+            r = subprocess.run(["ollama", "--version"], capture_output=True, text=True, timeout=5)
+            ollama_ver = r.stdout.strip() or r.stderr.strip()
+        except Exception:
+            pass
+
+    # Проверка TTS
+    cfg = (state.get("settings", {}) or {}).get("assistant", {}) or {}
+    tts_cmd = cfg.get("tts_path") or "xvibe-tts"
+    tts_ok = shutil.which(tts_cmd) is not None
+    tts_ver = ""
+    if tts_ok:
+        try:
+            r = subprocess.run([tts_cmd, "--version"], capture_output=True, text=True, timeout=5)
+            tts_ver = r.stdout.strip() or r.stderr.strip()
+        except Exception:
+            pass
+
+    return jsonify({
+        "ollama": {"available": ollama_ok, "version": ollama_ver},
+        "tts": {"available": tts_ok, "version": tts_ver},
+    })
+
+
+@api.route("/settings/assistant/test", methods=["POST"])
+def api_assistant_test():
+    import lua_engine
+    result = {}
+    try:
+        llm_res = lua_engine._api_ai_ask("Скажи 'Привет' одним словом.", "Отвечай кратко.")
+        result["llm"] = llm_res
+    except Exception as e:
+        result["llm"] = {"ok": False, "error": str(e)}
+
+    try:
+        tts_res = lua_engine._api_tts_speak("Тест ассистента")
+        result["tts"] = tts_res
+    except Exception as e:
+        result["tts"] = {"ok": False, "error": str(e)}
+
+    return jsonify(result)
+
+@api.route("/settings/assistant/llm_models", methods=["GET"])
+def api_assistant_llm_models():
+    """Запрашивает список моделей у локального сервера Ollama."""
+    cfg = (state.get("settings", {}) or {}).get("assistant", {}) or {}
+    base_url = cfg.get("llm_url", "http://localhost:11434").rstrip("/")
+    url = f"{base_url}/api/tags"
+
+    import urllib.request
+    import json as _json
+
+    try:
+        req = urllib.request.Request(url, method="GET")
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            body = resp.read().decode("utf-8")
+            data = _json.loads(body)
+            models = [m.get("name") for m in data.get("models", []) if m.get("name")]
+            return jsonify({"ok": True, "models": models})
+    except Exception as e:
+        log.warning("[assistant] ollama models error: %s", e)
+        return jsonify({"ok": False, "error": str(e), "models": []})
+
+@api.route("/lua/generate", methods=["POST"])
+def lua_generate():
+    body = request.get_json(silent=True) or {}
+    description = (body.get("description") or "").strip()
+    if not description:
+        return jsonify({"error": "description required"}), 400
+
+    # 1. Собираем контекст о всех устройствах и их полях
+    devices_info = []
+    for did, dev in state["devices"].items():
+        fields = list(dev.get("state", {}).keys())
+        name = dev.get("name", did)
+        dev_type = dev.get("type", "unknown")
+        devices_info.append(f"- ID: '{did}' | Имя: '{name}' | Тип: {dev_type} | Поля: {', '.join(fields)}")
+    
+    devices_context = "\n".join(devices_info) if devices_info else "Нет доступных устройств."
+
+    # 2. Формируем системный промпт
+    system_prompt = """Ты — эксперт по программированию на Lua для системы умного дома GS Smart. 
+Твоя задача — написать Lua-скрипт по текстовому описанию пользователя.
+
+Доступные API в системе:
+- devices.get('device_id', 'field') — получить значение поля устройства.
+- devices.set('device_id', 'field', value) — установить значение поля.
+- devices.list() — получить список всех устройств (возвращает таблицу ID -> Имя).
+- log('message') — записать сообщение в лог.
+- notify('title', 'body', 'level') — отправить уведомление в браузер (level: 'info', 'warning', 'error').
+- telegram.send('text') — отправить сообщение в Telegram.
+- pushover.send('message', 'title', priority) — отправить push-уведомление.
+- ai.ask('prompt') — спросить у LLM.
+- tts.speak('text') — озвучить текст.
+- time.sleep(ms) — подождать (в миллисекундах).
+- mqtt.publish('topic', 'payload') — отправить MQTT-сообщение.
+- http.get('url') — выполнить HTTP GET-запрос.
+
+Контекст (доступные устройства):
+""" + devices_context + """
+
+ПРАВИЛА:
+1. Пиши ТОЛЬКО код на Lua, без markdown-разметки (без ```lua).
+2. Используй реальные ID устройств и полей из контекста.
+3. Не пиши лишних объяснений, только код.
+4. Если нужно сравнить числа, используй tonumber().
+5. Для уведомлений используй notify().
+6. Код должен быть безопасным и не вызывать бесконечных циклов.
+"""
+
+    # 3. Отправляем запрос в Ollama
+    try:
+        import lua_engine
+        res = lua_engine._api_ai_ask(
+            prompt=description,
+            system_prompt=system_prompt
+        )
+        
+        if not res.get("ok"):
+            return jsonify({"error": res.get("error", "LLM error")}), 500
+            
+        code = res.get("response", "").strip()
+        
+        # Убираем возможные markdown-обертки, если модель их добавила
+        if code.startswith("```lua"):
+            code = code[6:]
+        if code.startswith("```"):
+            code = code[3:]
+        if code.endswith("```"):
+            code = code[:-3]
+        
+        return jsonify({"ok": True, "code": code.strip()})
+        
+    except Exception as e:
+        log.warning("[api] lua_generate error: %s", e)
+        return jsonify({"error": str(e)}), 500
+
+@api.route("/scenarios/generate", methods=["POST"])
+def scenarios_generate():
+    body = request.get_json(silent=True) or {}
+    description = (body.get("description") or "").strip()
+    if not description:
+        return jsonify({"error": "description required"}), 400
+
+    # 1. Собираем контекст о всех устройствах
+    devices_info = []
+    for did, dev in state["devices"].items():
+        fields = list(dev.get("state", {}).keys())
+        name = dev.get("name", did)
+        dev_type = dev.get("type", "unknown")
+        # Показываем только ID, имя и доступные поля
+        devices_info.append(f"- ID: '{did}' | Имя: '{name}' | Тип: {dev_type} | Поля: {', '.join(fields)}")
+    
+    devices_context = "\n".join(devices_info) if devices_info else "Нет доступных устройств."
+
+    # 2. Формируем системный промпт (на русском, т.к. qwen2.5 хорошо его понимает)
+    system_prompt = f"""Ты — эксперт по умному дому GS Smart. Твоя задача — сгенерировать JSON для сценария автоматизации на основе текстового описания.
+
+Доступные устройства:
+{devices_context}
+
+Структура JSON сценария:
+{{
+  "name": "Название сценария",
+  "enabled": true,
+  "logic": "AND",  // или "OR", "NOT"
+  "initial_delay": 0,
+  "conditions": [
+    {{
+      "device": "ID_устройства",
+      "field": "имя_поля",
+      "op": "==",  // или "!=", ">", "<", ">=", "<=", "contains"
+      "value": "значение",
+      "negate": false
+    }}
+  ],
+  "actions": [
+    {{
+      "type": "set_state",
+      "device": "ID_устройства",
+      "field": "имя_поля",
+      "value": "новое_значение",
+      "value_source": {{ "mode": "const" }}  // или "device", "expr"
+    }},
+    {{
+      "type": "notify",
+      "title": "Заголовок",
+      "body": "Текст уведомления",
+      "level": "info"  // "info", "warning", "error"
+    }},
+    {{
+      "type": "delay",
+      "seconds": 5
+    }},
+    {{
+      "type": "mqtt_publish",
+      "topic": "topic/name",
+      "payload": "message"
+    }}
+  ]
+}}
+
+ПРАВИЛА:
+1. Верни ТОЛЬКО валидный JSON, без markdown-разметки (без ```json).
+2. Используй реальные ID устройств и полей из контекста.
+3. Значения приводи к правильному типу (числа — без кавычек, строки — в кавычках, bool — true/false).
+4. Если в описании несколько условий, используй logic: "AND".
+5. Если нужно выполнить действие после задержки, добавь действие с type: "delay".
+"""
+
+    # 3. Отправляем запрос в Ollama (используем qwen2.5)
+    try:
+        import lua_engine
+        res = lua_engine._api_ai_ask(
+            prompt=description,
+            system_prompt=system_prompt
+        )
+        
+        if not res.get("ok"):
+            return jsonify({"error": res.get("error", "LLM error")}), 500
+            
+        raw_json = res.get("response", "").strip()
+        
+        # Убираем возможные markdown-обертки
+        if raw_json.startswith("```json"):
+            raw_json = raw_json[7:]
+        if raw_json.startswith("```"):
+            raw_json = raw_json[3:]
+        if raw_json.endswith("```"):
+            raw_json = raw_json[:-3]
+        
+        raw_json = raw_json.strip()
+        
+        # 4. Парсим JSON
+        import json as _json
+        try:
+            scenario_data = _json.loads(raw_json)
+        except _json.JSONDecodeError as e:
+            return jsonify({
+                "error": "LLM вернул невалидный JSON",
+                "details": str(e),
+                "raw": raw_json[:500]  # первые 500 символов для отладки
+            }), 500
+
+        # 5. Валидация и создание сценария
+        if not isinstance(scenario_data, dict):
+            return jsonify({"error": "JSON должен быть объектом"}), 400
+            
+        # Генерируем ID и добавляем служебные поля
+        sid = new_id()
+        scenario_data["id"] = sid
+        scenario_data.setdefault("name", "Сценарий от ИИ")
+        scenario_data.setdefault("enabled", True)
+        scenario_data.setdefault("logic", "AND")
+        scenario_data.setdefault("initial_delay", 0)
+        scenario_data.setdefault("conditions", [])
+        scenario_data.setdefault("actions", [])
+        scenario_data.setdefault("group", "")
+
+        # Простая проверка, что условия и действия — списки
+        if not isinstance(scenario_data["conditions"], list):
+            scenario_data["conditions"] = []
+        if not isinstance(scenario_data["actions"], list):
+            scenario_data["actions"] = []
+
+        # Сохраняем
+        state["scenarios"][sid] = scenario_data
+        save_state()
+        
+        return jsonify({"ok": True, "scenario": scenario_data})
+        
+    except Exception as e:
+        log.warning("[api] scenarios_generate error: %s", e)
+        return jsonify({"error": str(e)}), 500
