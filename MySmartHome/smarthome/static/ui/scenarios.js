@@ -819,3 +819,63 @@ function setGroup(id) {
   renderGroupTabs();
   renderScenarios();
 }
+
+function openScenarioGenModal() {
+  const overlay = document.getElementById('scenario-gen-overlay');
+  if (!overlay) return;
+  document.getElementById('scenario-gen-desc').value = '';
+  document.getElementById('scenario-gen-status').textContent = '';
+  overlay.classList.add('open');
+  document.getElementById('scenario-gen-desc').focus();
+}
+
+function closeScenarioGenModal() {
+  const overlay = document.getElementById('scenario-gen-overlay');
+  if (overlay) overlay.classList.remove('open');
+}
+
+async function generateScenario() {
+  const desc = document.getElementById('scenario-gen-desc').value.trim();
+  const statusEl = document.getElementById('scenario-gen-status');
+  const btn = document.getElementById('scenario-gen-btn');
+  
+  if (!desc) {
+    statusEl.textContent = '⚠ Введите описание сценария';
+    statusEl.style.color = '#ffb74d';
+    return;
+  }
+
+  statusEl.textContent = '⏳ Думаю... (это может занять 10-30 секунд)';
+  statusEl.style.color = '#4fc3f7';
+  btn.disabled = true;
+  btn.textContent = '⏳...';
+
+  try {
+    const res = await api('/api/scenarios/generate', 'POST', { description: desc });
+    
+    if (res.ok && res.scenario) {
+      statusEl.textContent = '✅ Сценарий создан!';
+      statusEl.style.color = '#4caf50';
+      
+      // Обновляем кеш сценариев и перерисовываем список
+      if (typeof scenariosCache !== 'undefined') {
+        scenariosCache.push(res.scenario);
+      }
+      
+      setTimeout(() => {
+        closeScenarioGenModal();
+        if (typeof renderScenarios === 'function') {
+          renderScenarios();
+        }
+      }, 800);
+    } else {
+      throw new Error(res.error || 'Неизвестная ошибка');
+    }
+  } catch (e) {
+    statusEl.textContent = '❌ Ошибка: ' + e.message;
+    statusEl.style.color = '#ef5350';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✨ Сгенерировать';
+  }
+}
