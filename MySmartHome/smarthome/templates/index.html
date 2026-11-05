@@ -600,7 +600,7 @@
               </p>
       
               <!-- ===================== devices ===================== -->
-              <details open>
+              <details>
                 <summary>devices</summary>
       
                 <div class="lua-snip-title">Чтение одного поля</div>
@@ -619,7 +619,7 @@
               </details>
       
               <!-- ===================== knx ===================== -->
-              <details open>
+              <details>
                 <summary>knx</summary>
       
                 <div class="lua-snip-title">Чтение поля устройства</div>
@@ -653,7 +653,7 @@
               </details>
       
               <!-- ===================== modbus ===================== -->
-              <details open>
+              <details>
                 <summary>modbus</summary>
       
                 <div class="lua-snip-title">Чтение поля устройства</div>
@@ -805,7 +805,25 @@
           end
       end</pre>
               </details>
-      
+                    <!-- ===================== Pushover ===================== -->
+                    <details>
+                      <summary>📲 Pushover</summary>
+            
+                      <div class="lua-snip-title">Простое сообщение</div>
+                      <pre>pushover.send("Привет из GS Smart!")</pre>
+            
+                      <div class="lua-snip-title">С заголовком и приоритетом</div>
+                      <pre>local res = pushover.send("Температура упала ниже 10°C", "Внимание", 1)
+            if not res.ok then
+                log("Ошибка Pushover: " .. tostring(res.error))
+            end</pre>
+            
+                      <div class="lua-snip-title">Критическое уведомление (требует подтверждения)</div>
+                      <pre>pushover.send("ПРОТЕЧКА ВОДЫ!", "Авария", 2, "siren")</pre>
+            
+                      <div class="lua-snip-title">Со ссылкой на сайт</div>
+                      <pre>pushover.send("Проверьте систему", "Уведомление", 0, nil, "http://192.168.1.100", "Открыть панель")</pre>
+                    </details>
               <!-- ===================== JSON ===================== -->
               <details>
                 <summary>🧩 JSON</summary>
@@ -1379,6 +1397,34 @@
       </div>
       <div id="tg-status" style="grid-column:1/-1;font-size:.85rem;opacity:.85;"></div>
     </div>
+
+    <!-- Pushover -->
+    <div class="hint" style="margin-top:1rem;">
+      📲 <b>Pushover</b>. Push-уведомления на телефон/ПК.
+    </div>
+    <div class="mqtt-form" id="pushover-form">
+      <div class="mqtt-field">
+        <label for="po-enabled">Включить Pushover</label>
+        <input type="checkbox" id="po-enabled">
+        <small>Разрешает вызовы <code>pushover.send()</code> из Lua</small>
+      </div>
+      <div class="mqtt-field">
+        <label for="po-user">User Key</label>
+        <input type="text" id="po-user" placeholder="u...">
+        <small>Ваш User Key из личного кабинета Pushover</small>
+      </div>
+      <div class="mqtt-field">
+        <label for="po-token">API Token</label>
+        <input type="password" id="po-token" placeholder="a...">
+        <small>Токен приложения, созданного в Pushover</small>
+      </div>
+      <div class="mqtt-field mqtt-actions" style="flex-direction:row;gap:.5rem;">
+        <button onclick="savePushoverSettings()">💾 Сохранить</button>
+        <button class="btn gray" onclick="testPushover()">🧪 Тест</button>
+      </div>
+      <div id="po-status" style="grid-column:1/-1;font-size:.85rem;opacity:.85;"></div>
+    </div>
+
   </div><!-- /system-view -->
 
 </div><!-- /edit-ui -->
