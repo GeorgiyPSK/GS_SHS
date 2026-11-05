@@ -522,14 +522,10 @@ def unpublish_ga(addr: str):
 # bacnet_server.py
 
 def update_value(addr: str, value):
-    log.info("[bacnet] update_value START: addr=%r, value=%r", addr, value)
-    
     if not _started or not _loop:
-        log.warning("[bacnet] update_value: сервер не запущен")
         return
         
     if addr not in _published:
-        log.warning("[bacnet] update_value: %r НЕТ в _published", addr)
         return
 
     info = _published[addr]
@@ -556,11 +552,9 @@ def update_value(addr: str, value):
                 except Exception:
                     pass
                     
-            # Обновляем значение в _published для UI
             if addr in _published:
                 _published[addr]["value"] = new_val
                 
-            log.info("[bacnet] _do_update: успешно обновлен %s -> %r", addr, new_val)
         except Exception as e:
             log.warning("[bacnet] _do_update: ошибка для %s: %s", addr, e)
 
