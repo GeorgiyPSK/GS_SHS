@@ -498,7 +498,10 @@ def devices_set_state(did):
                 bacnet_server.update_value(f"{did}:{k}", v)
             except Exception as e:
                 log.warning("[api] bacnet update error: %s", e)
-
+        try:
+            run_all_scenarios()
+        except Exception as e:
+            log.warning("[api] run_all_scenarios error: %s", e)
     return jsonify(dev)
 
 
