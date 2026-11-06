@@ -1,4 +1,5 @@
 # 🏠 GS Smart — Умный дом, который думает
+## Сценарии, события, таймеры, трансляция интерфейсов и протоколов, скриптинг
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Flask-2.x-000000?logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
