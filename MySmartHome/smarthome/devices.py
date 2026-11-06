@@ -2,7 +2,12 @@
 from datetime import datetime
 from state import state, save_state, new_id
 import logging
+import ast
+import operator as op
+import re
+
 log = logging.getLogger("smarthome.devices")
+
 DEFAULT_ICON_RULES = {
     "door": [
         {"field": "open",  "op": "==", "value": True,  "icon": "🚪"},
@@ -41,7 +46,11 @@ DEFAULT_ICON_RULES = {
         {"field": "pressed","op": "==", "value": True, "icon": "🔴"},
         {"field": "pressed","op": "==", "value": False,"icon": "🔘"},
     ],
-};
+    "virtual": [
+        # Иконки для виртуальных устройств можно задать позже через UI
+    ],
+}
+
 
 def default_state(dtype):
     if dtype == "thermostat":
@@ -66,6 +75,13 @@ def default_state(dtype):
         return {"pressed": False}
     if dtype == "text":
         return {"text": "", "width": 40}
+    if dtype == "virtual":
+        return {
+            "value": 0.0,
+            "formula": "",
+            "unit": "",
+            "updated": None,
+        }
 
     # Кастомный тип: берём поля из state["custom_types"]
     from state import state as _state
@@ -109,13 +125,8 @@ def add_device(dtype, name, room="", room_id="", x=None, y=None, on_plan=False):
         },
         "knx": {
             "enabled": False,
-            "fields": {
-                # "on":   {"address": "1/2/3", "dpt": "DPT-1.001"},
-                # "temp": {"read":  {"address": "1/2/4", "dpt": "DPT-9.001"},
-                #          "write": {"address": "1/2/5", "dpt": "DPT-9.001"}},
-            },
+            "fields": {},
         },
-
         # ─── Modbus ──────────────────────────────────
         "modbus": {
             "enabled": False,
@@ -133,7 +144,6 @@ def add_device(dtype, name, room="", room_id="", x=None, y=None, on_plan=False):
             },
             "fields": {},
         },
-
         "updated": datetime.now().isoformat(timespec="seconds"),
     }
 
@@ -197,6 +207,12 @@ def set_device_state(did, patch):
     except Exception as e:
         log.error("[devices] logger error:%s", e)
 
+    # Пересчёт виртуальных устройств (если изменилось что-то, что может влиять)
+    try:
+        recalc_virtuals()
+    except Exception as e:
+        log.warning("[devices] recalc_virtuals error: %s", e)
+
     # SSE
     try:
         from api import notify_state_changed
@@ -205,6 +221,157 @@ def set_device_state(did, patch):
         log.error("[devices] notify_state_changed error:%s", e)
 
     return changed
+
+
+# ============================================================
+# Виртуальные устройства
+# ============================================================
+
+_ALLOWED_BINOPS = {
+    ast.Add: op.add, ast.Sub: op.sub, ast.Mult: op.mul,
+    ast.Div: op.truediv, ast.FloorDiv: op.floordiv,
+    ast.Mod: op.mod, ast.Pow: op.pow,
+}
+_ALLOWED_UNARY = {ast.UAdd: op.pos, ast.USub: op.neg}
+_ALLOWED_FUNCS = {
+    "abs": abs, "min": min, "max": max, "round": round,
+    "int": int, "float": float,
+}
+
+
+def _safe_eval_expr(expr: str):
+    """Безопасно вычисляет математическое выражение (без eval)."""
+    try:
+        node = ast.parse(str(expr), mode="eval")
+    except SyntaxError:
+        # Если это просто число — вернём его
+        try:
+            return float(expr)
+        except (ValueError, TypeError):
+            return 0.0
+
+    def _ev(n):
+        if isinstance(n, ast.Expression): return _ev(n.body)
+        if isinstance(n, ast.Constant):   return n.value
+        if isinstance(n, ast.Name):
+            if n.id in _ALLOWED_FUNCS: return _ALLOWED_FUNCS[n.id]
+            raise ValueError(n.id)
+        if isinstance(n, ast.BinOp) and type(n.op) in _ALLOWED_BINOPS:
+            return _ALLOWED_BINOPS[type(n.op)](_ev(n.left), _ev(n.right))
+        if isinstance(n, ast.UnaryOp) and type(n.op) in _ALLOWED_UNARY:
+            return _ALLOWED_UNARY[type(n.op)](_ev(n.operand))
+        if isinstance(n, ast.Call):
+            f = _ev(n.func)
+            if f not in _ALLOWED_FUNCS.values():
+                raise ValueError("call not allowed")
+            return f(*[_ev(a) for a in n.args])
+        if isinstance(n, (ast.Tuple, ast.List)):
+            return [_ev(e) for e in n.elts]
+        raise ValueError(type(n).__name__)
+
+    try:
+        result = _ev(node)
+        return float(result) if isinstance(result, (int, float)) else 0.0
+    except Exception:
+        return 0.0
+
+
+def _render_formula(formula: str) -> str:
+    """
+    Подставляет значения из устройств в формулу.
+    Ищет паттерны {dev_id:field} и заменяет их на текущие значения.
+    """
+    def _repl(m):
+        dev_id = m.group(1)
+        field = m.group(2)
+        dev = state["devices"].get(dev_id)
+        if not dev:
+            return "0"
+        val = (dev.get("state") or {}).get(field)
+        if val is None:
+            return "0"
+        return str(val)
+
+    # Паттерн {dev_id:field}
+    return re.sub(r"\{([^:}]+):([^}]+)\}", _repl, formula)
+
+
+def recalc_virtuals():
+    """
+    Пересчитывает все виртуальные устройства.
+    Вызывается после изменения любого устройства (через set_device_state)
+    или по запросу из API.
+    """
+    virtuals = [
+        (did, dev) for did, dev in state["devices"].items()
+        if dev.get("type") == "virtual"
+    ]
+    if not virtuals:
+        return
+
+    any_changed = False
+
+    for did, dev in virtuals:
+        st = dev.get("state") or {}
+        formula = (st.get("formula") or "").strip()
+        if not formula:
+            continue
+
+        try:
+            # 1. Подставляем значения из других устройств
+            rendered = _render_formula(formula)
+
+            # 2. Вычисляем
+            value = _safe_eval_expr(rendered)
+
+            # 3. Обновляем состояние
+            old = st.get("value")
+            if old != value:
+                st["value"] = value
+                st["updated"] = datetime.now().isoformat(timespec="seconds")
+                dev["updated"] = st["updated"]
+                any_changed = True
+
+                # Уведомляем UI
+                try:
+                    from api import notify_state_changed
+                    notify_state_changed()
+                except Exception:
+                    pass
+
+                # Событие для сценариев / event_bus
+                try:
+                    import event_bus
+                    event_bus.publish(
+                        "device_changed",
+                        source="virtual",
+                        device_id=did,
+                        field="value",
+                        value=value,
+                        old_value=old,
+                    )
+                except Exception:
+                    pass
+
+                # BACnet
+                try:
+                    import bacnet_server
+                    bacnet_server.update_value(f"{did}:value", value)
+                except Exception:
+                    pass
+
+                # Сценарии
+                try:
+                    from scenarios import run_all_scenarios
+                    run_all_scenarios()
+                except Exception:
+                    pass
+
+        except Exception as e:
+            log.warning("[devices] recalc_virtuals %s error: %s", did, e)
+
+    if any_changed:
+        save_state()
 
 
 def migrate_positions():
