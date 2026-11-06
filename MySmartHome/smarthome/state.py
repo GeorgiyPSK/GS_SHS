@@ -374,7 +374,14 @@ def normalize_state():
     knx.setdefault("individual_address", "15.15.250")
 
     from devices import default_state
-
+    for dev in state["devices"].values():
+        if dev.get("type") == "virtual":
+            st = dev.setdefault("state", {})
+            st.setdefault("value", 0.0)
+            st.setdefault("formula", "")
+            st.setdefault("unit", "")
+            st.setdefault("updated", None)
+            
     for dev in state["devices"].values():
         dev.setdefault("extra_rooms", [])
         dev.setdefault("mqtt", {"state_topic": "", "sub_topic": "", "retain": True})
