@@ -120,6 +120,22 @@ function renderCard(d) {
         <button class="${s.mode === 'heat' ? 'on' : 'off'}" onclick="setState('${d.id}', {mode:'heat'})">🔥 Нагрев</button>
         <button class="${s.mode === 'cool' ? 'on' : 'off'}" onclick="setState('${d.id}', {mode:'cool'})">❄️ Охлажд.</button>
       </div>`;
+    } else if (d.type === 'virtual') {
+      const val = s.value;
+      const unit = s.unit || '';
+      const formula = s.formula || '';
+      
+      value = `${val} ${unit}`.trim();
+      sub = formula ? `Формула: ${formula}` : 'Нет формулы';
+      
+      controls = `
+        <div style="font-size:.85rem; opacity:.8; margin-top:.3rem;">
+          Обновлено: ${s.updated || '—'}
+        </div>
+        <div class="controls">
+          <button class="btn small gray" onclick="editVirtualFormula('${d.id}')">✎ Формула</button>
+        </div>`;
+    
   } else if (d.type === 'climate') {
     value = `${(+s.temp).toFixed(1)} °C`;
     sub = `Влажность: ${(+s.humidity).toFixed(0)} %`;
@@ -995,6 +1011,21 @@ function renderViewCard(d) {
         oninput="this.nextElementSibling.querySelector('span').textContent = parseFloat(this.value).toFixed(1) + ' °C'; this.dataset.dirty='1'"
         onchange="if (this.dataset.dirty) { delete this.dataset.dirty; setState('${d.id}', {target: parseFloat(this.value)}) }">
       <div style="font-size:.85rem; opacity:.8; margin-top:.3rem;">Новая цель: <span>${(+s.target).toFixed(1)} °C</span></div>`;
+    } else if (d.type === 'virtual') {
+      const val = s.value;
+      const unit = s.unit || '';
+      const formula = s.formula || '';
+      
+      value = `${val} ${unit}`.trim();
+      sub = formula ? `Формула: ${formula}` : 'Нет формулы';
+      
+      controls = `
+        <div style="font-size:.85rem; opacity:.8; margin-top:.3rem;">
+          Обновлено: ${s.updated || '—'}
+        </div>
+        <div class="controls">
+          <button class="btn small gray" onclick="editVirtualFormula('${d.id}')">✎ Формула</button>
+        </div>`;
   } else if (d.type === 'climate') {
     value = `${(+s.temp).toFixed(1)} °C`;
     sub = `Влажность: ${(+s.humidity).toFixed(0)} %`;
@@ -1169,3 +1200,172 @@ async function updateDeviceBacnet(did, field, spec) {
     alert('BACnet: ' + e.message);
   }
 }
+
+async function editVirtualFormula(did) {
+  const d = devicesCache.find(x => x.id === did);
+  if (!d) return;
+  
+  const cur = (d.state.formula || '');
+  const newFormula = prompt(
+    'Введите формулу (используйте {dev_id:field} для подстановки):\n' +
+    'Пример: ({sensor1:temp} + {sensor2:temp}) / 2',
+    cur
+  );
+  if (newFormula === null) return;
+  
+  const newUnit = prompt('Единица измерения (°C, %, Вт и т.д.):', d.state.unit || '');
+  if (newUnit === null) return;
+  
+  try {
+    await api('/api/devices/' + did + '/state', 'POST', {
+      formula: newFormula.trim(),
+      unit: newUnit.trim()
+    });
+    refresh();
+  } catch (e) {
+    alert('Ошибка: ' + e.message);
+  }
+}
+
+async function addDevice() {
+  const typeEl = document.getElementById('type');
+  const nameEl = document.getElementById('name');
+  const roomEl = document.getElementById('room');
+
+  if (!typeEl || !nameEl) {
+    alert('Не найдены поля формы');
+    return;
+  }
+
+  const dtype = typeEl.value;
+  const name = (nameEl.value || '').trim() || 'Новое устройство';
+  const room = (roomEl?.value || '').trim();
+
+  try {
+    const dev = await api('/api/devices', 'POST', {
+      type: dtype,
+      name: name,
+      room: room,
+    });
+
+    // Добавляем в локальный кэш
+    if (typeof devicesCache !== 'undefined') {
+      devicesCache.push(dev);
+      window.devicesCache = devicesCache;
+    }
+
+    // Очищаем поля
+    if (nameEl) nameEl.value = '';
+    if (roomEl) roomEl.value = '';
+
+    // Перерисовываем
+    if (typeof refresh === 'function') {
+      refresh();
+    }
+    if (typeof renderCurrentView === 'function') {
+      renderCurrentView();
+    }
+
+    // Показываем уведомление
+    if (typeof notify === 'function') {
+      notify('Устройство добавлено', `${name} (${dtype})`, 'info');
+    }
+  } catch (e) {
+    alert('Ошибка добавления: ' + e.message);
+  }
+}
+
+async function removeDevice(id) {
+  const d = (typeof devicesCache !== 'undefined') 
+    ? devicesCache.find(x => x.id === id) 
+    : null;
+  const name = d ? d.name : id;
+  
+  if (!confirm(`Удалить устройство "${name}"?\n\nЭто также очистит ссылки в сценариях, событиях, таймерах, MQTT-триггерах, KNX и на плане.`)) {
+    return;
+  }
+
+  try {
+    await api('/api/devices/' + id, 'DELETE');
+
+    if (typeof devicesCache !== 'undefined') {
+      const idx = devicesCache.findIndex(x => x.id === id);
+      if (idx >= 0) devicesCache.splice(idx, 1);
+      window.devicesCache = devicesCache;
+    }
+
+    if (typeof refresh === 'function') refresh();
+    if (typeof renderCurrentView === 'function') renderCurrentView();
+  } catch (e) {
+    alert('Ошибка удаления: ' + e.message);
+  }
+}
+
+async function renameDevice(id) {
+  const d = devicesCache.find(x => x.id === id);
+  if (!d) return;
+  const newName = prompt('Новое имя устройства:', d.name);
+  if (!newName || !newName.trim()) return;
+  
+  try {
+    const updated = await api('/api/devices/' + id + '/name', 'POST', { name: newName.trim() });
+    const idx = devicesCache.findIndex(x => x.id === id);
+    if (idx >= 0) devicesCache[idx] = updated;
+    refresh();
+  } catch (e) {
+    alert('Ошибка: ' + e.message);
+  }
+}
+
+async function setDeviceRoom(id, roomId) {
+  try {
+    const updated = await api('/api/devices/' + id + '/room', 'POST', { room_id: roomId });
+    const idx = devicesCache.findIndex(x => x.id === id);
+    if (idx >= 0) devicesCache[idx] = updated;
+    refresh();
+  } catch (e) {
+    alert('Ошибка: ' + e.message);
+  }
+}
+
+async function toggleExtraRoom(id, roomId, checked) {
+  const d = devicesCache.find(x => x.id === id);
+  if (!d) return;
+  const rooms = new Set(d.extra_rooms || []);
+  if (checked) rooms.add(roomId); else rooms.delete(roomId);
+  
+  try {
+    const updated = await api('/api/devices/' + id + '/extra_rooms', 'POST', { extra_rooms: Array.from(rooms) });
+    const idx = devicesCache.findIndex(x => x.id === id);
+    if (idx >= 0) devicesCache[idx] = updated;
+    refresh();
+  } catch (e) {
+    alert('Ошибка: ' + e.message);
+  }
+}
+
+async function pressButton(id) {
+  try {
+    await api('/api/devices/' + id + '/state', 'POST', { pressed: true });
+    refresh();
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+async function toggleOnPlan(id) {
+  const d = devicesCache.find(x => x.id === id);
+  if (!d) return;
+  
+  const newVal = !d.on_plan;
+  
+  try {
+    await api('/api/devices/' + id + '/position', 'POST', { on_plan: newVal });
+    d.on_plan = newVal;
+    if (typeof refresh === 'function') refresh();
+    if (typeof renderCurrentView === 'function') renderCurrentView();
+  } catch (e) {
+    alert('Ошибка: ' + e.message);
+  }
+}
+window.toggleOnPlan = toggleOnPlan;
