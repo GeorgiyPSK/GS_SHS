@@ -55,10 +55,9 @@
 
 ### 1. Клонирование и установка
 ```bash
+1. Установка
 git clone https://github.com/GeorgiyPSK/GS_SHS.git
-Install. bat - установка сервера
-start_waitress.bat - запуск
-localhost: 5000 Admin: 165538
+Install.bat - установка сервера
 
 2. Установка ИИ и TTS (опционально)
 Запустите install_ai.bat (Windows) от имени администратора. Он установит:
@@ -77,9 +76,9 @@ ollama pull qwen2.5
 # TTS
 pip install git+https://github.com/GenVoice/xVibePocketTTS.git
 3. Запуск
-bash
-python app.py
-Откройте браузер: http://localhost:5000
+start_waitress.bat - запуск
+(bash python app.py)
+localhost:5000 Admin: 165538
 ```
 Первый вход: Логин admin, пароль admin (смените в настройках!).
 
