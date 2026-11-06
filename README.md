@@ -50,7 +50,14 @@
 - **Логирование**: Журналы устройств, логи сервера, отладка.
 
 ---
-
+![Устройства](docs/screens/dashboard.png)
+![Сценарии](docs/screens/scenar.png)
+![BacNet](docs/screens/bac.png)
+![BacNet](docs/screens/knx.png)
+![LUA](docs/screens/lua.png)
+![MQTT](docs/screens/mqtt.png)
+![Таймеры](docs/screens/timers.png)
+![Планы](docs/screens/plan.png)
 ## 🚀 Быстрый старт
 
 ### 1. Клонирование и установка
