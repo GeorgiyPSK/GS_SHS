@@ -55,12 +55,9 @@
 ### 1. Клонирование и установка
 ```bash
 git clone https://github.com/GeorgiyPSK/GS_SHS.git
-cd GS_Smart/MySmartHome/smarthome
-python -m venv venv
-# Windows:
-venv\Scripts\activate
-# Linux/macOS:
-source venv/bin/activate
+Install. bat - установка сервера
+start_waitress.bat - запуск
+localhost: 5000 Admin: 165538
 
 pip install -r requirements.txt
 2. Установка ИИ и TTS (опционально)
