@@ -300,7 +300,8 @@ def devices_add():
     body = request.get_json(silent=True) or {}
     dtype = body.get("type")
     known = {"thermostat", "climate", "door", "leak", "motion",
-             "light", "light_switch", "curtain", "fan", "button", "text"}
+             "light", "light_switch", "curtain", "fan", "button", "text",
+             "virtual"}
     if dtype not in known and dtype not in state.get("custom_types", {}):
         return jsonify({
             "error": "unknown type",
