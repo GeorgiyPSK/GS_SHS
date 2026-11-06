@@ -778,7 +778,8 @@ def stop_all():
 def restart():
     stop()
     if _thread and _thread.is_alive():
-        _thread.join(timeout=5)
+        _thread.join(timeout=10)
+        time.sleep(1)
     start()
 
 
@@ -1014,14 +1015,8 @@ def _parse_payload_once(dst: str, payload):
         raw = None
     return raw, dpt
 
-def read_group_address_sync(addr: str, timeout: float = 2.0,
-                            dpt: str | None = None):
-    """
-    Отправить GroupValueRead и дождаться ответа от шины.
-    Возвращает python-значение или None при таймауте/ошибке.
-    """
+def read_group_address_sync(addr: str, timeout: float = 2.0, dpt: str | None = None):
     if not (_xknx and _loop):
-        log.warning("[knx] read_sync %s: KNX не подключён", addr)
         return None
 
     q = _queue.Queue(maxsize=1)
@@ -1034,7 +1029,6 @@ def read_group_address_sync(addr: str, timeout: float = 2.0,
             return None
         try:
             value = q.get(timeout=timeout)
-            log.info("[knx] read_sync %s = %r", addr, value)
             return value
         except _queue.Empty:
             log.warning("[knx] read_sync %s: таймаут %.1fс", addr, timeout)
